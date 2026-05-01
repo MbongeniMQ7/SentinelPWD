@@ -1,0 +1,138 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-surface: var(--surface);
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.875rem;
+
+  /* Light blue page background like the mockups */
+  --background: oklch(0.965 0.018 245);
+  --foreground: oklch(0.18 0.04 260);
+
+  --surface: oklch(0.985 0.01 245);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.04 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.04 260);
+
+  /* Deep navy as primary */
+  --primary: oklch(0.22 0.045 260);
+  --primary-foreground: oklch(0.985 0.005 245);
+  --navy: oklch(0.22 0.045 260);
+  --navy-foreground: oklch(0.985 0.005 245);
+
+  /* Soft warm gold accent */
+  --gold: oklch(0.86 0.12 88);
+  --gold-soft: oklch(0.94 0.07 90);
+  --gold-foreground: oklch(0.32 0.08 70);
+
+  --secondary: oklch(0.95 0.015 245);
+  --secondary-foreground: oklch(0.22 0.045 260);
+  --muted: oklch(0.95 0.015 245);
+  --muted-foreground: oklch(0.5 0.03 260);
+  --accent: oklch(0.94 0.07 90);
+  --accent-foreground: oklch(0.32 0.08 70);
+
+  --success: oklch(0.7 0.15 150);
+  --success-soft: oklch(0.92 0.07 150);
+  --warning: oklch(0.78 0.13 75);
+  --warning-soft: oklch(0.94 0.08 85);
+  --danger: oklch(0.62 0.22 25);
+  --danger-soft: oklch(0.93 0.06 25);
+
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.985 0.005 245);
+  --border: oklch(0.92 0.015 245);
+  --input: oklch(0.92 0.015 245);
+  --ring: oklch(0.86 0.12 88);
+}
+
+.dark {
+  --background: oklch(0.18 0.04 260);
+  --foreground: oklch(0.985 0.005 245);
+  --card: oklch(0.22 0.045 260);
+  --card-foreground: oklch(0.985 0.005 245);
+  --primary: oklch(0.86 0.12 88);
+  --primary-foreground: oklch(0.22 0.045 260);
+  --border: oklch(1 0 0 / 10%);
+  --muted: oklch(0.27 0.04 260);
+  --muted-foreground: oklch(0.7 0.03 260);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html, body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply mx-auto w-full max-w-[430px] min-h-screen bg-background relative;
+  }
+  .panel {
+    @apply bg-card rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)];
+  }
+  .row-divider > * + * {
+    border-top: 1px solid var(--color-border);
+  }
+  .label-eyebrow {
+    @apply text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground;
+  }
+}

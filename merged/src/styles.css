@@ -1,0 +1,375 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* =================================================================
+ * Theme inline — token registrations.
+ * Tailwind v4 generates utility classes from these declarations.
+ * Actual color values come from :root (User design = default) or
+ * scoped overrides on [data-role="admin"] / [data-role="owner"].
+ * ================================================================= */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-muted: var(--card-muted);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-critical: var(--critical);
+  --color-critical-foreground: var(--critical-foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-surface-muted: var(--surface-muted);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-soft: var(--shadow-soft);
+
+  --background-image-gradient-hero: var(--gradient-hero);
+  --background-image-gradient-gold: var(--gradient-gold);
+
+  --animate-fade-in: fade-in 0.4s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =================================================================
+ * USER role (default) — preserved from /User app
+ * ================================================================= */
+:root {
+  --radius: 0.875rem;
+
+  --background: oklch(0.965 0.018 245);
+  --foreground: oklch(0.18 0.04 260);
+
+  --surface: oklch(0.985 0.01 245);
+  --surface-foreground: oklch(0.18 0.04 260);
+  --surface-muted: oklch(0.955 0.005 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.04 260);
+  --card-muted: oklch(0.95 0.015 245);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.04 260);
+
+  --primary: oklch(0.22 0.045 260);
+  --primary-foreground: oklch(0.985 0.005 245);
+  --navy: oklch(0.22 0.045 260);
+  --navy-foreground: oklch(0.985 0.005 245);
+
+  --gold: oklch(0.86 0.12 88);
+  --gold-soft: oklch(0.94 0.07 90);
+  --gold-foreground: oklch(0.32 0.08 70);
+
+  --secondary: oklch(0.95 0.015 245);
+  --secondary-foreground: oklch(0.22 0.045 260);
+  --muted: oklch(0.95 0.015 245);
+  --muted-foreground: oklch(0.5 0.03 260);
+  --accent: oklch(0.94 0.07 90);
+  --accent-foreground: oklch(0.32 0.08 70);
+
+  --success: oklch(0.7 0.15 150);
+  --success-soft: oklch(0.92 0.07 150);
+  --success-foreground: oklch(0.99 0.003 150);
+  --warning: oklch(0.78 0.13 75);
+  --warning-soft: oklch(0.94 0.08 85);
+  --warning-foreground: oklch(0.25 0.05 70);
+  --danger: oklch(0.62 0.22 25);
+  --danger-soft: oklch(0.93 0.06 25);
+  --critical: oklch(0.62 0.22 25);
+  --critical-foreground: oklch(0.99 0.003 25);
+
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.985 0.005 245);
+  --destructive-soft: oklch(0.93 0.06 25);
+  --border: oklch(0.92 0.015 245);
+  --input: oklch(0.92 0.015 245);
+  --ring: oklch(0.86 0.12 88);
+
+  --ink: oklch(0.16 0.035 260);
+  --ink-soft: oklch(0.45 0.02 260);
+
+  --shadow-card: 0 8px 24px -12px oklch(0.18 0.04 260 / 0.18);
+  --shadow-soft: 0 4px 16px -8px oklch(0.18 0.04 260 / 0.14);
+
+  --gradient-hero: linear-gradient(135deg, oklch(0.22 0.045 260), oklch(0.32 0.05 250));
+  --gradient-gold: linear-gradient(135deg, oklch(0.88 0.13 88), oklch(0.78 0.13 70));
+}
+
+.dark {
+  --background: oklch(0.18 0.04 260);
+  --foreground: oklch(0.985 0.005 245);
+  --card: oklch(0.22 0.045 260);
+  --card-foreground: oklch(0.985 0.005 245);
+  --primary: oklch(0.86 0.12 88);
+  --primary-foreground: oklch(0.22 0.045 260);
+  --border: oklch(1 0 0 / 10%);
+  --muted: oklch(0.27 0.04 260);
+  --muted-foreground: oklch(0.7 0.03 260);
+}
+
+/* =================================================================
+ * ADMIN role — preserved from /Admin app
+ * ================================================================= */
+[data-role="admin"] {
+  --background: oklch(0.92 0.005 250);
+  --surface: oklch(0.985 0.003 250);
+  --surface-muted: oklch(0.955 0.005 250);
+  --foreground: oklch(0.18 0.03 260);
+
+  --ink: oklch(0.16 0.035 260);
+  --ink-soft: oklch(0.45 0.02 260);
+
+  --card: oklch(0.99 0.002 250);
+  --card-foreground: oklch(0.18 0.03 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.03 260);
+
+  --primary: oklch(0.18 0.035 260);
+  --primary-foreground: oklch(0.99 0.003 250);
+
+  --secondary: oklch(0.95 0.005 250);
+  --secondary-foreground: oklch(0.18 0.035 260);
+
+  --muted: oklch(0.94 0.005 250);
+  --muted-foreground: oklch(0.5 0.02 260);
+
+  --accent: oklch(0.96 0.005 250);
+  --accent-foreground: oklch(0.18 0.035 260);
+
+  --warning: oklch(0.83 0.17 85);
+  --warning-foreground: oklch(0.25 0.05 70);
+  --warning-soft: oklch(0.95 0.07 90);
+
+  --success: oklch(0.72 0.17 150);
+  --success-foreground: oklch(0.99 0.003 150);
+  --success-soft: oklch(0.94 0.06 150);
+
+  --critical: oklch(0.62 0.22 25);
+  --critical-foreground: oklch(0.99 0.003 25);
+  --critical-soft: oklch(0.94 0.04 25);
+
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.99 0.003 25);
+  --destructive-soft: oklch(0.94 0.04 25);
+
+  --border: oklch(0.9 0.008 250);
+  --input: oklch(0.93 0.008 250);
+  --ring: oklch(0.83 0.17 85);
+}
+
+/* =================================================================
+ * OWNER role — preserved from /Owner app (HSL → wrapped for v4)
+ * ================================================================= */
+[data-role="owner"] {
+  --radius: 1rem;
+
+  --background: hsl(217 60% 13%);
+  --foreground: hsl(210 40% 98%);
+
+  --surface: hsl(217 55% 16%);
+  --surface-foreground: hsl(210 40% 98%);
+
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222 47% 11%);
+  --card-muted: hsl(220 20% 96%);
+
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222 47% 11%);
+
+  --primary: hsl(222 60% 14%);
+  --primary-foreground: hsl(210 40% 98%);
+
+  --gold: hsl(42 95% 55%);
+  --gold-foreground: hsl(222 60% 12%);
+  --gold-soft: hsl(44 100% 92%);
+
+  --secondary: hsl(220 16% 92%);
+  --secondary-foreground: hsl(222 47% 14%);
+
+  --muted: hsl(220 14% 94%);
+  --muted-foreground: hsl(218 12% 46%);
+
+  --accent: hsl(42 95% 55%);
+  --accent-foreground: hsl(222 60% 12%);
+
+  --destructive: hsl(0 78% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --destructive-soft: hsl(0 90% 96%);
+
+  --success: hsl(152 60% 40%);
+  --success-foreground: hsl(0 0% 100%);
+  --success-soft: hsl(152 60% 92%);
+
+  --border: hsl(220 16% 90%);
+  --input: hsl(220 16% 90%);
+  --ring: hsl(42 95% 55%);
+
+  --gradient-hero: linear-gradient(135deg, hsl(222 55% 18%), hsl(218 45% 28%));
+  --gradient-gold: linear-gradient(135deg, hsl(42 95% 60%), hsl(36 95% 50%));
+  --shadow-card: 0 8px 24px -12px hsl(222 60% 5% / 0.35);
+  --shadow-soft: 0 4px 16px -8px hsl(222 60% 5% / 0.25);
+}
+
+/* Owner uses Sora display font */
+[data-role="owner"] {
+  --font-display: "Sora", "Inter", sans-serif;
+}
+
+/* =================================================================
+ * Base
+ * ================================================================= */
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { overscroll-behavior-y: none; }
+  html, body, #root { height: 100%; }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  [data-role="admin"] h1,
+  [data-role="admin"] h2,
+  [data-role="admin"] h3,
+  [data-role="admin"] h4 {
+    color: var(--ink);
+    font-weight: 800;
+  }
+}
+
+/* =================================================================
+ * App viewport shell — full-width website layout
+ * (Previously a phone-sized container; now spans the full screen
+ *  with a centered max-width on large monitors for readability.)
+ * ================================================================= */
+.phone-shell {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  background-color: var(--background);
+  position: relative;
+  padding-bottom: 88px;
+}
+
+@media (min-width: 768px) {
+  .phone-shell {
+    padding-bottom: 32px;
+    margin: 0 auto;
+    min-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+  body {
+    background: var(--background);
+    min-height: 100vh;
+  }
+}
+
+/* Inner content container helper for full-width pages */
+.phone-shell > main,
+.phone-shell > .page-content {
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* =================================================================
+ * USER / shared component classes
+ * ================================================================= */
+@layer components {
+  .panel {
+    @apply bg-card rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)];
+  }
+  .row-divider > * + * {
+    border-top: 1px solid var(--color-border);
+  }
+  .label-eyebrow {
+    @apply text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground;
+  }
+
+  /* Owner full-width app shell */
+  .app-shell {
+    @apply mx-auto w-full min-h-screen relative bg-background;
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    animation: fade-in 0.4s ease-out;
+  }
+  .topbar {
+    @apply sticky top-0 z-30 flex items-center justify-between px-5 py-4 bg-white text-primary;
+    padding-top: calc(1rem + env(safe-area-inset-top));
+  }
+  .stat-card {
+    @apply bg-card text-card-foreground rounded-2xl p-5;
+    box-shadow: var(--shadow-card);
+  }
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider;
+  }
+}
+
+/* =================================================================
+ * Admin status pills + helpers
+ * ================================================================= */
+.pill-critical { background: var(--critical-soft); color: var(--critical); }
+.pill-warning  { background: var(--warning-soft); color: oklch(0.45 0.13 75); }
+.pill-success  { background: var(--success-soft); color: oklch(0.4 0.12 150); }
+.pill-info     { background: oklch(0.94 0.03 250); color: oklch(0.35 0.04 260); }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+.dot-pattern {
+  background-image: radial-gradient(oklch(0.85 0.02 90) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
