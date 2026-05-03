@@ -105,7 +105,7 @@ function Monitoring() {
               <div className="label-eyebrow mt-2">Node ID: HV-CORE-09</div>
             </div>
             <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-gold-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-gold animate-pulse" />
+              <span className="live-dot bg-gold" />
               LIVE<br />SYNCING
             </div>
           </div>
@@ -120,10 +120,11 @@ function Monitoring() {
               {[0.55, 0.7, 0.45, 0.65, 0.85, 0.6, 0.55, 0.78, 0.95, 0.5, 0.4].map((h, i) => (
                 <div
                   key={i}
-                  className="flex-1 rounded-sm"
+                  className="bar-col flex-1 rounded-sm"
                   style={{
                     height: `${h * 100}%`,
                     background: i === 8 ? "oklch(0.78 0.13 75)" : "oklch(0.86 0.12 88 / 0.6)",
+                    animationDelay: `${i * 40}ms`,
                   }}
                 />
               ))}
@@ -237,7 +238,7 @@ function Monitoring() {
             </span>
             Event Telemetry
           </h2>
-          <div className="panel p-3 space-y-2">
+          <div className="panel p-3 space-y-2 stagger">
             <TelRow time="14:02:11" text="IoT Hub: Heart rate variance +/- 2 BPM" tag="STABLE" tagColor="bg-gold-soft text-gold-foreground" />
             <TelRow time="14:01:54" text="BLE Signal strength reinforced" tag="NOMINAL" tagColor="text-muted-foreground" />
             <TelRow time="13:59:22" text="Device Auth: Token v2 rotation success" tag="SYSTEM" tagColor="text-muted-foreground" />
@@ -255,7 +256,7 @@ function Monitoring() {
             <span className="text-sm">Force Calibration</span>
             <MiniToggle on={false} />
           </div>
-          <button className="mt-5 w-full rounded-2xl bg-gold-soft py-3 text-sm font-bold tracking-wider text-gold-foreground">
+          <button className="mt-5 w-full rounded-2xl btn-gold py-3 text-sm font-bold tracking-wider">
             RESET HIVE NODE
           </button>
         </div>

@@ -60,13 +60,15 @@ function Home() {
             </div>
           </div>
           <span className="flex items-center gap-1.5 text-xs font-bold text-success">
-            <span className="h-1.5 w-1.5 rounded-full bg-success" /> ACTIVE
+            <span className="live-dot bg-success" /> ACTIVE
           </span>
         </div>
 
         {/* Fatigue ring */}
         <div className="flex flex-col items-center pt-3">
-          <div className="relative h-64 w-64 flex items-center justify-center">
+          <div className={`relative h-64 w-64 flex items-center justify-center rounded-full ${
+            liveLevel === "high" ? "ring-glow-high" : liveLevel === "moderate" ? "ring-glow-moderate" : "ring-glow-low"
+          }`}>
             <div className="absolute inset-0 rounded-full bg-gold/15" />
             <div className="absolute inset-4 rounded-full bg-gold-soft/60" />
             <div className="absolute inset-8 rounded-full bg-card shadow-inner" />
@@ -75,7 +77,7 @@ function Home() {
               <div className="label-eyebrow mt-1">Fatigue Score</div>
               <div className="mt-3 w-12 h-px bg-border mx-auto" />
               <span className={`mt-3 inline-flex items-center gap-1.5 rounded-full ${badgeClass} px-3 py-1.5 text-[11px] font-bold`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} /> {riskLabel(liveLevel).toUpperCase()}
+                <span className={`live-dot ${dotClass}`} /> {riskLabel(liveLevel).toUpperCase()}
               </span>
             </div>
           </div>
@@ -94,13 +96,13 @@ function Home() {
           </div>
           <div className="flex items-end gap-0.5 h-8">
             {[3, 5, 4, 6, 7, 5, 8, 4, 6].map((h, i) => (
-              <span key={i} className="w-1 bg-gold rounded-sm" style={{ height: `${h * 4}px` }} />
+              <span key={i} className="bar-col w-1 bg-gold rounded-sm" style={{ height: `${h * 4}px`, animationDelay: `${i * 60}ms` }} />
             ))}
           </div>
         </div>
 
         {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 stagger">
           <div className="panel p-4">
             <Activity className="h-5 w-5 text-navy" />
             <div className="label-eyebrow mt-3">Blood Pressure</div>
@@ -117,7 +119,7 @@ function Home() {
         <button
           type="button"
           onClick={toggleMonitoring}
-          className="w-full rounded-2xl bg-gold-soft hover:bg-gold/80 py-5 flex items-center justify-center gap-2 text-gold-foreground font-display font-bold text-lg"
+          className="w-full rounded-2xl btn-gold py-5 flex items-center justify-center gap-2 font-display font-bold text-lg"
         >
           {monitoring ? <><Pause className="h-5 w-5 fill-current" /> Pause Monitoring</> : <><Play className="h-5 w-5 fill-current" /> Start Monitoring</>}
         </button>

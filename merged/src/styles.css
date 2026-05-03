@@ -71,11 +71,41 @@
   --background-image-gradient-gold: var(--gradient-gold);
 
   --animate-fade-in: fade-in 0.4s ease-out;
+  --animate-slide-up: slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pulse-ring: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-bar-grow: bar-grow 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-spin-slow: spin-slow 3s linear infinite;
 }
 
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 oklch(0.86 0.12 88 / 0.55); }
+  70%  { box-shadow: 0 0 0 10px oklch(0.86 0.12 88 / 0); }
+  100% { box-shadow: 0 0 0 0 oklch(0.86 0.12 88 / 0); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position: 200% center; }
+}
+
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
 }
 
 /* =================================================================
@@ -330,7 +360,13 @@
  * ================================================================= */
 @layer components {
   .panel {
-    @apply bg-card rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04)];
+    @apply bg-card rounded-2xl;
+    box-shadow: 0 2px 8px -2px oklch(0.18 0.04 260 / 0.07), 0 1px 2px oklch(0.18 0.04 260 / 0.04);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .panel:hover {
+    box-shadow: 0 8px 24px -6px oklch(0.18 0.04 260 / 0.12), 0 2px 6px oklch(0.18 0.04 260 / 0.06);
+    transform: translateY(-1px);
   }
   .row-divider > * + * {
     border-top: 1px solid var(--color-border);
@@ -339,23 +375,72 @@
     @apply text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground;
   }
 
-  /* Owner full-width app shell */
+  /* App shell */
   .app-shell {
     @apply mx-auto w-full min-h-screen relative bg-background;
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
     animation: fade-in 0.4s ease-out;
   }
   .topbar {
-    @apply sticky top-0 z-30 flex items-center justify-between px-5 py-4 bg-white text-primary;
+    @apply sticky top-0 z-30 flex items-center justify-between px-5 py-4 bg-white/90 backdrop-blur-sm text-primary;
     padding-top: calc(1rem + env(safe-area-inset-top));
+    border-bottom: 1px solid oklch(0.92 0.015 245 / 0.6);
   }
   .stat-card {
     @apply bg-card text-card-foreground rounded-2xl p-5;
     box-shadow: var(--shadow-card);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .stat-card:hover {
+    box-shadow: 0 12px 32px -8px oklch(0.18 0.04 260 / 0.15);
+    transform: translateY(-2px);
   }
   .pill {
     @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider;
   }
+
+  /* Shimmer skeleton */
+  .shimmer {
+    background: linear-gradient(90deg,
+      oklch(0.93 0.015 245) 25%,
+      oklch(0.97 0.01 245) 50%,
+      oklch(0.93 0.015 245) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2.4s linear infinite;
+  }
+
+  /* Live indicator dot — animated pulse */
+  .live-dot {
+    @apply inline-block h-2 w-2 rounded-full;
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Staggered slide-up for list items */
+  .stagger > *:nth-child(1) { animation: slide-up 0.45s 0.05s cubic-bezier(0.22,1,0.36,1) both; }
+  .stagger > *:nth-child(2) { animation: slide-up 0.45s 0.12s cubic-bezier(0.22,1,0.36,1) both; }
+  .stagger > *:nth-child(3) { animation: slide-up 0.45s 0.19s cubic-bezier(0.22,1,0.36,1) both; }
+  .stagger > *:nth-child(4) { animation: slide-up 0.45s 0.26s cubic-bezier(0.22,1,0.36,1) both; }
+  .stagger > *:nth-child(5) { animation: slide-up 0.45s 0.33s cubic-bezier(0.22,1,0.36,1) both; }
+  .stagger > *:nth-child(n+6) { animation: slide-up 0.45s 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+
+  /* Bar chart columns animate in */
+  .bar-col {
+    transform-origin: bottom;
+    animation: bar-grow 0.6s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  /* Glowing gradient CTA button */
+  .btn-gold {
+    background: var(--gradient-gold);
+    color: var(--gold-foreground);
+    box-shadow: 0 4px 16px -4px oklch(0.78 0.13 75 / 0.4);
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+  }
+  .btn-gold:hover {
+    box-shadow: 0 8px 24px -4px oklch(0.78 0.13 75 / 0.55);
+    transform: translateY(-1px);
+  }
+  .btn-gold:active { transform: translateY(0); }
 }
 
 /* =================================================================
@@ -372,4 +457,61 @@
 .dot-pattern {
   background-image: radial-gradient(oklch(0.85 0.02 90) 1px, transparent 1px);
   background-size: 12px 12px;
+}
+
+/* ── Gradient hero header (admin pages) ─────────────────────────── */
+.header-gradient {
+  background: var(--gradient-hero);
+  color: var(--primary-foreground);
+  position: relative;
+  overflow: hidden;
+}
+.header-gradient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 110% -10%, oklch(0.86 0.12 88 / 0.18), transparent 60%);
+  pointer-events: none;
+}
+
+/* ── Score ring glow (user monitoring / home) ───────────────────── */
+.ring-glow-low      { box-shadow: 0 0 28px -4px oklch(0.7 0.15 150 / 0.35); }
+.ring-glow-moderate { box-shadow: 0 0 28px -4px oklch(0.78 0.13 75 / 0.40); }
+.ring-glow-high     { box-shadow: 0 0 28px -4px oklch(0.62 0.22 25 / 0.45); }
+
+/* ── Admin stat card accent stripe ─────────────────────────────── */
+.card-stripe-critical::before {
+  content: "";
+  position: absolute; left: 0; top: 16px; bottom: 16px;
+  width: 4px; border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, var(--critical), oklch(0.72 0.22 25));
+}
+.card-stripe-warning::before {
+  content: "";
+  position: absolute; left: 0; top: 16px; bottom: 16px;
+  width: 4px; border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, var(--warning), oklch(0.88 0.13 88));
+}
+
+/* ── Risk bar progress track ────────────────────────────────────── */
+.risk-track {
+  @apply relative h-2.5 w-full rounded-full bg-border overflow-hidden;
+}
+.risk-track-fill {
+  @apply h-full rounded-full;
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Bottom-nav active state glow ───────────────────────────────── */
+.bottom-nav-active {
+  color: var(--gold-foreground);
+  position: relative;
+}
+.bottom-nav-active::after {
+  content: "";
+  position: absolute;
+  bottom: -4px; left: 50%; transform: translateX(-50%);
+  width: 20px; height: 3px;
+  background: var(--gradient-gold);
+  border-radius: 2px;
 }

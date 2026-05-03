@@ -52,39 +52,39 @@ function Dashboard() {
   return (
     <AppShell>
       <TopBar showBell showAvatar />
-      <div className="px-5 pt-4">
-        <h1 className="text-[34px] leading-[1.05] font-extrabold text-ink">System Overview</h1>
-        <p className="mt-2 text-[13px] text-ink-soft leading-snug">
+      <div className="header-gradient px-5 pt-6 pb-7">
+        <h1 className="text-[34px] leading-[1.05] font-extrabold text-primary-foreground">System Overview</h1>
+        <p className="mt-2 text-[13px] text-primary-foreground/70 leading-snug">
           Real-time workforce intelligence and health metrics for current operations.
         </p>
-        <div className="mt-4 flex gap-3">
+        <div className="mt-5 flex gap-3">
           <button
             onClick={() => toast.success("Dashboard data exported as CSV")}
-            className="flex-1 h-11 rounded-xl bg-muted text-ink text-[12px] font-extrabold tracking-wider flex items-center justify-center gap-2"
+            className="flex-1 h-11 rounded-xl bg-white/10 hover:bg-white/20 text-primary-foreground text-[12px] font-extrabold tracking-wider flex items-center justify-center gap-2 transition-colors"
           >
             <Download className="h-4 w-4" /> EXPORT CSV
           </button>
           <button
             onClick={() => toast("Refreshing live data…")}
-            className="flex-1 h-11 rounded-xl bg-primary text-primary-foreground text-[12px] font-extrabold tracking-wider flex items-center justify-center gap-2"
+            className="flex-1 h-11 rounded-xl btn-gold text-[12px] font-extrabold tracking-wider flex items-center justify-center gap-2"
           >
             <RefreshCw className="h-4 w-4" /> UPDATE LIVE
           </button>
         </div>
         <Link
           to="/admin/fatigue-dashboard"
-          className="mt-3 w-full h-11 rounded-xl bg-warning/15 border border-warning/30 text-warning-foreground text-[12px] font-extrabold tracking-wider flex items-center justify-center gap-2"
+          className="mt-3 w-full h-11 rounded-xl bg-warning/25 border border-warning/40 text-white text-[12px] font-extrabold tracking-wider flex items-center justify-center gap-2 hover:bg-warning/35 transition-colors"
         >
           <Activity className="h-4 w-4" /> FATIGUE DASHBOARD
         </Link>
       </div>
 
-      <div className="px-5 mt-5 space-y-4">
+      <div className="px-5 mt-5 space-y-4 stagger">
         <StatCard label="TOTAL EMPLOYEES" value={String(liveTotal)} delta="+2.4% vs last month" deltaColor="text-success" icon={<Users className="h-4 w-4 text-ink" />} iconBg="bg-info-soft" />
         <StatCard label="HIGH-RISK EMPLOYEES" value={String(liveHigh)} pill={<StatusBadge variant="critical">Immediate Attention</StatusBadge>} icon={<AlertOctagon className="h-4 w-4 text-critical" />} iconBg="bg-critical/10" stripe />
         <StatCard label="ACTIVE ALERTS" value={String(liveActive)} delta={<span className="flex items-center gap-1 text-ink-soft text-[12px]"><Clock className="h-3.5 w-3.5" /> {activeAlertCount > 0 ? `${activeAlertCount} live in last 30m` : "Last triggered 14m ago"}</span>} icon={<Zap className="h-4 w-4 text-warning-foreground" />} iconBg="bg-warning/30" />
 
-        <section className="bg-surface rounded-2xl p-5 shadow-sm">
+        <section className="bg-surface rounded-2xl p-5 shadow-card border border-border/40">
           <h2 className="text-[18px] font-extrabold text-ink leading-tight">Quick Insights: Attention Required</h2>
           <p className="mt-1 text-[13px] text-ink-soft">Real-time flagged personnel requiring administrative review.</p>
 
@@ -149,12 +149,13 @@ function StatCard({
   icon: React.ReactNode; iconBg: string; deltaColor?: string; stripe?: boolean;
 }) {
   return (
-    <div className={`relative bg-surface rounded-2xl p-5 shadow-sm overflow-hidden ${stripe ? "before:absolute before:left-0 before:top-4 before:bottom-4 before:w-1 before:rounded-r-full before:bg-critical" : ""}`}>
+    <div className={`relative bg-surface rounded-2xl p-5 overflow-hidden transition-all duration-200 hover:-translate-y-0.5 ${stripe ? "card-stripe-critical" : ""}`}
+      style={{ boxShadow: "0 2px 10px -4px oklch(0.18 0.04 260 / 0.10), 0 1px 3px oklch(0.18 0.04 260 / 0.06)" }}>
       <div className="flex items-start justify-between">
         <p className="text-[11px] font-extrabold tracking-[0.18em] text-ink-soft uppercase">{label}</p>
-        <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${iconBg}`}>{icon}</div>
+        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${iconBg} shadow-sm`}>{icon}</div>
       </div>
-      <p className="mt-3 text-[42px] leading-none font-extrabold text-ink">{value}</p>
+      <p className="mt-3 text-[44px] leading-none font-extrabold text-ink">{value}</p>
       <div className="mt-3">
         {pill ?? (typeof delta === "string" ? <p className={`text-[13px] font-bold ${deltaColor || "text-ink-soft"}`}>{delta}</p> : delta)}
       </div>
@@ -205,8 +206,8 @@ function RiskBar({ label, pct, count, color }: { label: string; pct: number; cou
         <span>{label}</span>
         <span>{pct}% <span className="text-ink-soft font-normal">{count}</span></span>
       </div>
-      <div className="mt-1.5 h-2 rounded-full bg-muted overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      <div className="mt-1.5 risk-track">
+        <div className={`risk-track-fill ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
