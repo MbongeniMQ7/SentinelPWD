@@ -4,6 +4,10 @@ import { toast } from "sonner";
 import { AppHeader } from "@/components/user/AppHeader";
 import { BottomNav } from "@/components/user/BottomNav";
 import { Radio, Heart, Activity, Footprints, Play, Pause, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useWorkforceStatus } from "@/hooks/useFatigueMonitor";
+import { riskLabel } from "@/lib/fatigue/riskScore";
+
+const CURRENT_WORKER_ID = "WK-MARCUS-CHEN";
 
 export const Route = createFileRoute("/user/home")({
   component: Home,
@@ -11,6 +15,26 @@ export const Route = createFileRoute("/user/home")({
 
 function Home() {
   const [monitoring, setMonitoring] = useState(false);
+  const workforce = useWorkforceStatus();
+  const snap = workforce.workers[CURRENT_WORKER_ID];
+  const liveScore = snap?.score ?? 0;
+  const liveLevel = snap?.level ?? "low";
+  const liveBlinkRate = snap ? Math.round(snap.blinkRate) : null;
+
+  // Derive badge colours from risk level — same tokens already in the stylesheet.
+  const badgeClass =
+    liveLevel === "high"
+      ? "bg-danger-soft text-danger"
+      : liveLevel === "moderate"
+        ? "bg-gold-soft text-gold-foreground"
+        : "bg-success-soft text-success";
+  const dotClass =
+    liveLevel === "high"
+      ? "bg-danger"
+      : liveLevel === "moderate"
+        ? "bg-gold"
+        : "bg-success";
+
   const toggleMonitoring = () => {
     setMonitoring((m) => {
       const next = !m;
@@ -47,11 +71,11 @@ function Home() {
             <div className="absolute inset-4 rounded-full bg-gold-soft/60" />
             <div className="absolute inset-8 rounded-full bg-card shadow-inner" />
             <div className="relative text-center">
-              <div className="text-6xl font-display font-bold tracking-tight">24%</div>
+              <div className="text-6xl font-display font-bold tracking-tight">{liveScore}%</div>
               <div className="label-eyebrow mt-1">Fatigue Score</div>
               <div className="mt-3 w-12 h-px bg-border mx-auto" />
-              <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1.5 text-[11px] font-bold text-success">
-                <span className="h-1.5 w-1.5 rounded-full bg-success" /> LOW RISK
+              <span className={`mt-3 inline-flex items-center gap-1.5 rounded-full ${badgeClass} px-3 py-1.5 text-[11px] font-bold`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} /> {riskLabel(liveLevel).toUpperCase()}
               </span>
             </div>
           </div>
@@ -65,7 +89,7 @@ function Home() {
           <div className="flex-1">
             <div className="label-eyebrow">Heart Rate</div>
             <div className="font-display text-2xl font-bold">
-              72 <span className="text-xs text-muted-foreground font-sans font-semibold">BPM</span>
+              {liveBlinkRate ?? 72} <span className="text-xs text-muted-foreground font-sans font-semibold">BPM</span>
             </div>
           </div>
           <div className="flex items-end gap-0.5 h-8">
