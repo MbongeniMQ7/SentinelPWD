@@ -6,10 +6,8 @@
       "includeFiles": "dist/server/**"
     }
   },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/server"
-    }
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/api/server" }
   ]
 }
