@@ -12,6 +12,7 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { supabase } from "@/lib/supabase";
 import { fatigueAlertBus, type ManagerAlertPayload, type WorkerAlertPayload } from "./alertBus";
 
 export type AlertKind = "worker" | "manager";
@@ -42,6 +43,8 @@ function pushAlert(entry: LoggedAlert) {
   // Newest first; cap to MAX_LOG_ENTRIES
   alertLog = [entry, ...alertLog].slice(0, MAX_LOG_ENTRIES);
   notify();
+  // Persist to Supabase in the background
+  void saveAlertToDb(entry);
 }
 
 let initialised = false;
@@ -118,4 +121,65 @@ export function useAlertLog(): readonly LoggedAlert[] {
     getAlertLogSnapshot,
     getAlertLogSnapshot,
   );
+}
+
+// ── Supabase persistence ───────────────────────────────────────────────────────
+
+export interface DbAlert {
+  id: string;
+  kind: AlertKind;
+  level: "moderate" | "high";
+  score: number;
+  message: string;
+  acknowledged: boolean;
+  fired_at: string;
+}
+
+/**
+ * Persist a fired alert to Supabase fatigue_alerts table.
+ * Fire-and-forget — errors are swallowed so monitoring is never blocked.
+ */
+export async function saveAlertToDb(alert: LoggedAlert): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("fatigue_alerts").insert({
+    user_id: user.id,
+    kind: alert.kind,
+    level: alert.level,
+    score: alert.score,
+    message: alert.message,
+    acknowledged: false,
+    fired_at: new Date(alert.timestamp).toISOString(),
+  });
+}
+
+/**
+ * Load the user's alert history from Supabase, newest first.
+ */
+export async function loadAlertsFromDb(
+  limit = 50
+): Promise<{ alerts: DbAlert[]; error: string | null }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { alerts: [], error: "Not authenticated" };
+
+  const { data, error } = await supabase
+    .from("fatigue_alerts")
+    .select("id, kind, level, score, message, acknowledged, fired_at")
+    .eq("user_id", user.id)
+    .order("fired_at", { ascending: false })
+    .limit(limit);
+
+  if (error) return { alerts: [], error: error.message };
+  return { alerts: (data ?? []) as DbAlert[], error: null };
+}
+
+/**
+ * Mark an alert as acknowledged in Supabase.
+ */
+export async function acknowledgeAlertInDb(id: string): Promise<void> {
+  await supabase
+    .from("fatigue_alerts")
+    .update({ acknowledged: true })
+    .eq("id", id);
 }
