@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { User, ShieldCheck, Shield, Mail, Lock, ArrowRight, Globe, Loader2 } from "lucide-react";
+import { User, ShieldCheck, Shield, Mail, Lock, ArrowRight, Globe, Loader2, Camera } from "lucide-react";
 import { signIn, signUp, resetPassword } from "@/lib/auth";
+import { uploadAvatar, updateProfile } from "@/lib/profile";
 import type { AppRole } from "@/lib/supabase";
 
 type UIRole = "user" | "admin" | "owner";
@@ -23,11 +24,22 @@ const Login = () => {
   const nav = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [role, setRole] = useState<UIRole>("owner");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,10 +60,15 @@ const Login = () => {
         toast.success("Welcome back!");
         nav({ to: roleRedirects[role] });
       } else {
-        const { error, needsEmailConfirmation } = await signUp(email, password, role as AppRole, fullName);
+        const { error, needsEmailConfirmation } = await signUp(email, password, role as AppRole, firstName, lastName);
         if (error) {
           toast.error(error);
           return;
+        }
+        if (avatarFile && !needsEmailConfirmation) {
+          const { url, error: uploadError } = await uploadAvatar(avatarFile);
+          if (url) await updateProfile({ avatar_url: url });
+          if (uploadError) toast.error("Profile photo upload failed — you can add it later in Settings.");
         }
         if (needsEmailConfirmation) {
           toast.success("Check your email to confirm your account.");
@@ -132,20 +149,65 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             {mode === "signup" && (
-              <div>
-                <label className="text-sm font-medium text-primary">Full Name</label>
-                <div className="mt-2 flex items-center gap-2 bg-secondary rounded-xl px-4 py-3">
-                  <User className="h-5 w-5 text-muted-foreground" />
+              <>
+                {/* Avatar picker */}
+                <div className="flex flex-col items-center gap-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative h-20 w-20 rounded-full bg-secondary border-2 border-dashed border-border overflow-hidden flex items-center justify-center hover:border-gold transition"
+                  >
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <Camera className="h-7 w-7 text-muted-foreground" />
+                    )}
+                    <div className="absolute bottom-0 inset-x-0 bg-black/40 text-[9px] font-bold text-white text-center py-1">
+                      PHOTO
+                    </div>
+                  </button>
                   <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Jane Smith"
-                    className="bg-transparent flex-1 outline-none text-primary placeholder:text-muted-foreground"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
                   />
+                  <p className="text-[11px] text-muted-foreground">Tap to upload your photo</p>
                 </div>
-              </div>
+
+                {/* First + Last name */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-primary">First Name</label>
+                    <div className="mt-2 flex items-center gap-2 bg-secondary rounded-xl px-4 py-3">
+                      <User className="h-5 w-5 text-muted-foreground shrink-0" />
+                      <input
+                        type="text"
+                        required
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="Jane"
+                        className="bg-transparent flex-1 outline-none text-primary placeholder:text-muted-foreground"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-primary">Last Name</label>
+                    <div className="mt-2 flex items-center gap-2 bg-secondary rounded-xl px-4 py-3">
+                      <User className="h-5 w-5 text-muted-foreground shrink-0" />
+                      <input
+                        type="text"
+                        required
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Smith"
+                        className="bg-transparent flex-1 outline-none text-primary placeholder:text-muted-foreground"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
 
             <div>

@@ -36,15 +36,17 @@ export async function signIn(
 }
 
 /**
- * Create a new account with email, password, role and optional display name.
+ * Create a new account with email, password, role, first name and last name.
  * The full_name is stored in user_metadata so the DB trigger can populate profiles.
  */
 export async function signUp(
   email: string,
   password: string,
   role: AppRole,
-  fullName?: string
+  firstName?: string,
+  lastName?: string
 ): Promise<SignUpResult> {
+  const fullName = [firstName, lastName].filter(Boolean).join(" ") || undefined;
   const { data, error } = await supabase.auth.signUp({
     email,
     password,

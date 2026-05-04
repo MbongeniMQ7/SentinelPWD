@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppHeader } from "@/components/user/AppHeader";
 import { BottomNav } from "@/components/user/BottomNav";
 import { useWorkforceStatus } from "@/hooks/useFatigueMonitor";
+import { loadSession, clearSession, loadSessionHistory } from "@/lib/fatigue/sessionStore";
+import type { DbSession } from "@/lib/fatigue/sessionStore";
 import {
   Activity,
   Eye,
@@ -11,7 +13,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   Minus,
+  Clock,
+  XCircle,
 } from "lucide-react";
+import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 
 // Stable per-session worker ID (must match monitoring.tsx)
@@ -156,14 +161,51 @@ function WorkerDashboard() {
   const workforce = useWorkforceStatus();
   const live = workforce.workers[CURRENT_WORKER_ID];
 
-  // Use live data when a monitoring session is running, fall back to demo
-  const score = live?.score ?? DEMO.score;
-  const level = (live?.level ?? DEMO.level) as keyof typeof RISK_CFG;
-  const blinkRate = live?.blinkRate ?? DEMO.blinkRate;
-  const eyeClosure = live?.eyeClosure ?? DEMO.eyeClosure;
-  const focus = live?.focus ?? DEMO.focus;
-  const trend = live?.trend?.length ? live.trend : DEMO.trend;
-  const isLive = !!live;
+  // Load the last terminated session from sessionStorage (immediate after terminate)
+  const [lastSession, setLastSession] = useState(() => loadSession());
+
+  // Load historical sessions from Supabase
+  const [history, setHistory] = useState<DbSession[]>([]);
+
+  useEffect(() => {
+    loadSessionHistory(20).then(({ sessions }) => {
+      if (sessions.length > 0) setHistory(sessions);
+    });
+  }, []);
+
+  // The latest session from DB (newest first)
+  const latestDbSession = history[0] ?? null;
+
+  // Use live data when monitoring is running,
+  // then sessionStorage (immediate post-terminate), then DB, then DEMO
+  const source = live ? "live" : lastSession ? "session" : latestDbSession ? "db" : "demo";
+  const score = live?.score ?? lastSession?.score ?? latestDbSession?.score ?? DEMO.score;
+  const level = (live?.level ?? lastSession?.level ?? latestDbSession?.level ?? DEMO.level) as keyof typeof RISK_CFG;
+  const blinkRate = live?.blinkRate ?? lastSession?.blinkRate ?? latestDbSession?.blink_rate ?? DEMO.blinkRate;
+  const eyeClosure = live?.eyeClosure ?? lastSession?.eyeClosure ?? latestDbSession?.eye_closure ?? DEMO.eyeClosure;
+  const focus = live?.focus ?? lastSession?.focus ?? latestDbSession?.focus ?? DEMO.focus;
+
+  // Trend: prefer live, then sessionStorage, then build from DB history scores (oldest→newest), then DEMO
+  const dbTrend = history.length > 0 ? [...history].reverse().map((s) => s.score) : [];
+  const trend = live?.trend?.length
+    ? live.trend
+    : lastSession?.trend?.length
+      ? lastSession.trend
+      : dbTrend.length
+        ? dbTrend
+        : DEMO.trend;
+
+  const isLive = source === "live";
+
+  function formatDuration(secs: number) {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  }
+
+  function formatTime(iso: string) {
+    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
 
   const cfg = RISK_CFG[level];
   const trendMax = Math.max(...trend, 1);
@@ -185,11 +227,11 @@ function WorkerDashboard() {
 
       <main className="flex-1 px-5 pb-6 space-y-5 overflow-y-auto">
         {/* Session status banner */}
-        {!isLive && (
+        {source === "demo" && (
           <div className="rounded-xl bg-warning-soft border border-warning/30 px-4 py-2.5 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-warning-foreground shrink-0" />
             <p className="text-xs font-semibold text-warning-foreground">
-              Showing last session data —{" "}
+              No session data yet —{" "}
               <Link to="/user/monitoring" className="underline underline-offset-2">
                 start monitoring
               </Link>{" "}
@@ -198,10 +240,48 @@ function WorkerDashboard() {
           </div>
         )}
 
+        {source === "db" && latestDbSession && (
+          <div className="rounded-xl bg-secondary border border-border px-4 py-2.5 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+            <p className="text-xs font-semibold text-muted-foreground">
+              Showing last recorded session ·{" "}
+              {new Date(latestDbSession.terminated_at).toLocaleDateString([], {
+                day: "numeric", month: "short", year: "numeric",
+              })}
+            </p>
+          </div>
+        )}
+
         {isLive && (
           <div className="rounded-xl bg-success-soft border border-success/30 px-4 py-2.5 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-success animate-pulse shrink-0" />
             <p className="text-xs font-semibold text-success">Live monitoring active</p>
+          </div>
+        )}
+
+        {/* Last session results banner */}
+        {source === "session" && lastSession && (
+          <div className="rounded-xl bg-secondary border border-border px-4 py-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-ink">Last Session Results</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Terminated at {formatTime(lastSession.terminatedAt)}
+                    {lastSession.durationSeconds > 0 && ` · Duration: ${formatDuration(lastSession.durationSeconds)}`}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { clearSession(); setLastSession(null); }}
+                className="shrink-0 text-muted-foreground hover:text-danger transition"
+                aria-label="Clear session results"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -254,7 +334,7 @@ function WorkerDashboard() {
           </div>
 
           <div className="flex justify-between mt-2 text-[10px] font-semibold text-muted-foreground">
-            <span>{trend.length} readings ago</span>
+            <span>{source === "db" ? `${history.length} session${history.length !== 1 ? "s" : ""}` : `${trend.length} readings ago`}</span>
             <span>Now</span>
           </div>
 

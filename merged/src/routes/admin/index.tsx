@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { User, ShieldCheck, ShieldUser, Mail, Lock, ArrowRight, Globe, Loader2 } from "lucide-react";
+import { User, ShieldCheck, ShieldUser, Mail, Lock, ArrowRight, Globe, Loader2, Camera } from "lucide-react";
 import { signIn, signUp, resetPassword } from "@/lib/auth";
+import { uploadAvatar, updateProfile } from "@/lib/profile";
 import type { AppRole } from "@/lib/supabase";
 
 export const Route = createFileRoute("/admin/")({
@@ -28,12 +29,23 @@ const roleRedirects: Record<UIRole, string> = {
 function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [role, setRole] = useState<UIRole>("Admin");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  }
 
   const roles: { key: UIRole; icon: typeof User }[] = [
     { key: "User", icon: User },
@@ -60,10 +72,15 @@ function LoginPage() {
         toast.success("Welcome back!");
         navigate({ to: roleRedirects[role] });
       } else {
-        const { error, needsEmailConfirmation } = await signUp(email, password, roleMap[role], fullName);
+        const { error, needsEmailConfirmation } = await signUp(email, password, roleMap[role], firstName, lastName);
         if (error) {
           toast.error(error);
           return;
+        }
+        if (avatarFile && !needsEmailConfirmation) {
+          const { url, error: uploadError } = await uploadAvatar(avatarFile);
+          if (url) await updateProfile({ avatar_url: url });
+          if (uploadError) toast.error("Profile photo upload failed — you can add it later in Settings.");
         }
         if (needsEmailConfirmation) {
           toast.success("Check your email to confirm your account.");
@@ -142,20 +159,65 @@ function LoginPage() {
 
           <form onSubmit={handleSubmit} className="mt-10 space-y-4">
             {mode === "signup" && (
-              <div>
-                <label className="text-[13px] font-semibold text-ink">Full Name</label>
-                <div className="mt-2 relative">
-                  <User className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
+              <>
+                {/* Avatar picker */}
+                <div className="flex flex-col items-center gap-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative h-20 w-20 rounded-full bg-muted border-2 border-dashed border-ink-soft/30 overflow-hidden flex items-center justify-center hover:border-warning transition"
+                  >
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <Camera className="h-7 w-7 text-ink-soft" />
+                    )}
+                    <div className="absolute bottom-0 inset-x-0 bg-black/40 text-[9px] font-bold text-white text-center py-1">
+                      PHOTO
+                    </div>
+                  </button>
                   <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Jane Smith"
-                    className="w-full h-12 pl-10 pr-3 rounded-xl bg-muted text-[14px] text-ink placeholder:text-ink-soft/70 outline-none focus:ring-2 focus:ring-warning/40"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
                   />
+                  <p className="text-[11px] text-ink-soft">Tap to upload your photo</p>
                 </div>
-              </div>
+
+                {/* First + Last name */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[13px] font-semibold text-ink">First Name</label>
+                    <div className="mt-2 relative">
+                      <User className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
+                      <input
+                        type="text"
+                        required
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="Jane"
+                        className="w-full h-12 pl-10 pr-3 rounded-xl bg-muted text-[14px] text-ink placeholder:text-ink-soft/70 outline-none focus:ring-2 focus:ring-warning/40"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[13px] font-semibold text-ink">Last Name</label>
+                    <div className="mt-2 relative">
+                      <User className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
+                      <input
+                        type="text"
+                        required
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Smith"
+                        className="w-full h-12 pl-10 pr-3 rounded-xl bg-muted text-[14px] text-ink placeholder:text-ink-soft/70 outline-none focus:ring-2 focus:ring-warning/40"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
 
             <div>

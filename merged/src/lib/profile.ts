@@ -43,3 +43,27 @@ export async function updateProfile(updates: ProfileUpdate): Promise<{ error: st
 
   return { error: error ? error.message : null };
 }
+
+/**
+ * Upload a profile avatar to Supabase Storage (bucket: "avatars").
+ * Overwrites any existing avatar for the user.
+ * Returns the public URL on success.
+ */
+export async function uploadAvatar(
+  file: File
+): Promise<{ url: string | null; error: string | null }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { url: null, error: "Not authenticated" };
+
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+  const path = `${user.id}/avatar.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) return { url: null, error: uploadError.message };
+
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  return { url: data.publicUrl, error: null };
+}

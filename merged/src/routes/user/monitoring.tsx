@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/user/AppHeader";
@@ -8,6 +8,7 @@ import { useFaceDetection } from "@/hooks/useFaceDetection";
 import { useFatigueMonitor } from "@/hooks/useFatigueMonitor";
 import { fatigueAlertBus } from "@/lib/fatigue/alertBus";
 import { riskLabel } from "@/lib/fatigue/riskScore";
+import { saveSession, saveSessionToDb } from "@/lib/fatigue/sessionStore";
 import { Square, BarChart3 } from "lucide-react";
 
 export const Route = createFileRoute("/user/monitoring")({
@@ -20,7 +21,9 @@ const CURRENT_WORKER_ID = "WK-MARCUS-CHEN";
 const CURRENT_WORKER_NAME = "Marcus Chen";
 
 function Monitoring() {
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const sessionStartRef = useRef<number>(Date.now());
   const {
     cameraStatus,
     faceDetected,
@@ -40,10 +43,30 @@ function Monitoring() {
 
   // Auto-start camera when the screen mounts.
   useEffect(() => {
+    sessionStartRef.current = Date.now();
     void startCamera();
     return () => stopCamera();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function handleTerminate() {
+    // Snapshot current session data before stopping
+    const snap = {
+      score: fatigue.score,
+      level: fatigue.level,
+      blinkRate: fatigue.blinkRate,
+      eyeClosure: fatigue.eyeClosure,
+      focus: fatigue.focus,
+      trend: fatigue.trend.length ? fatigue.trend : [fatigue.score],
+      durationSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
+    };
+    saveSession(snap);
+    // Also persist to Supabase (async, fire-and-forget — dashboard will fetch it)
+    void saveSessionToDb(snap);
+    stopCamera();
+    toast.success("Session terminated — results saved to dashboard.");
+    navigate({ to: "/user/dashboard" });
+  }
 
   // Feed every detection result into the fatigue monitor.
   useEffect(() => {
@@ -149,7 +172,7 @@ function Monitoring() {
           </div>
 
           <button
-            onClick={() => stopCamera()}
+            onClick={handleTerminate}
             className="mt-5 w-full rounded-full bg-danger-soft py-3.5 flex items-center justify-center gap-2 text-danger font-bold text-sm tracking-wider"
           >
             <Square className="h-4 w-4 fill-current" /> TERMINATE MONITORING
