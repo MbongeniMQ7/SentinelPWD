@@ -46,6 +46,7 @@ wss.on("connection", (sock, req) => {
   sock.on("close", () => {
     console.log(`[fatigue-ws] client disconnected — total: ${wss.clients.size}`);
   });
+  sock.on("Open", )
 
   sock.on("error", (err) => {
     console.warn("[fatigue-ws] socket error:", err.message);

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/admin/layout/AppShell";
@@ -10,6 +10,7 @@ import {
   type PushTransportHandle,
 } from "@/lib/fatigue/transport";
 import { CreditCard, LifeBuoy, UserPlus, ChevronRight, LogOut, Bell, Globe, Shield } from "lucide-react";
+import { signOut } from "@/lib/auth";
 
 export const Route = createFileRoute("/admin/settings")({
   head: () => ({
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/admin/settings")({
 });
 
 function SettingsPage() {
+  const navigate = useNavigate();
   const [perm, setPerm] = useState(getNotificationPermission);
   const pushHandleRef = useRef<PushTransportHandle | null>(null);
 
@@ -103,9 +105,13 @@ function SettingsPage() {
           <Row icon={<Globe className="h-5 w-5" />} label="Region & Language" sub="Global Terminal (EN-UK)" onClick={() => toast("Region & language settings coming soon")} />
         </div>
 
-        <Link to="/" className="mt-4 w-full h-12 rounded-xl bg-muted text-ink text-[13px] font-extrabold tracking-wider uppercase flex items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={async () => { await signOut(); navigate({ to: "/" }); }}
+          className="mt-4 w-full h-12 rounded-xl bg-muted text-ink text-[13px] font-extrabold tracking-wider uppercase flex items-center justify-center gap-2"
+        >
           <LogOut className="h-4 w-4" /> Log Out
-        </Link>
+        </button>
       </div>
     </AppShell>
   );

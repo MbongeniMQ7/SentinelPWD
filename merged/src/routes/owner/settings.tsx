@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/owner/AppShell";
 import { TopBar } from "@/components/owner/TopBar";
-import { Sliders, Shield, Bell, Receipt, ChevronRight, CreditCard, Pencil, Copy, UserPlus, AlertTriangle, Zap } from "lucide-react";
+import { Sliders, Shield, Bell, Receipt, ChevronRight, CreditCard, Pencil, Copy, UserPlus, AlertTriangle, Zap, LogOut } from "lucide-react";
 import { useState } from "react";
+import { signOut } from "@/lib/auth";
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [toggles, setToggles] = useState({ reg: true, sys: true, pay: false });
   const T = ({ k }: { k: keyof typeof toggles }) => (
     <button onClick={() => setToggles(s => ({ ...s, [k]: !s[k] }))}
@@ -104,6 +106,14 @@ const Settings = () => {
           <button className="font-display font-bold text-foreground">Discard</button>
           <button className="bg-white text-primary font-bold tracking-wider text-xs px-6 py-4 rounded-xl">SAVE CHANGES</button>
         </div>
+
+        <button
+          type="button"
+          onClick={async () => { await signOut(); navigate({ to: "/" }); }}
+          className="w-full flex items-center justify-center gap-2 rounded-2xl bg-destructive/10 py-4 text-sm font-bold text-destructive"
+        >
+          <LogOut className="h-4 w-4" /> Log Out
+        </button>
       </div>
     </AppShell>
   );

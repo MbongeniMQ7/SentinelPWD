@@ -2,16 +2,29 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Moon, Globe, AlertTriangle, Activity, FileText, AtSign, RotateCcw, ShieldCheck, Search, FileCheck, ExternalLink, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { resetPassword } from "@/lib/auth";
 
 export const Route = createFileRoute("/user/settings")({
   component: Settings,
 });
 
 function Settings() {
+  const { user } = useAuth();
   const [dark, setDark] = useState(false);
   const [fatigue, setFatigue] = useState(true);
   const [vitals, setVitals] = useState(true);
   const [weekly, setWeekly] = useState(false);
+
+  async function handleChangePassword() {
+    if (!user?.email) return;
+    const { error } = await resetPassword(user.email);
+    if (error) {
+      toast.error(error);
+    } else {
+      toast.success("Password reset link sent to your email.");
+    }
+  }
 
   return (
     <div className="app-shell px-5 py-6 pb-10">
@@ -34,8 +47,20 @@ function Settings() {
       </Section>
 
       <Section label="Account">
-        <Row icon={<AtSign className="h-4 w-4" />} title="Update Email" sub="m.chen@sentinelai.com" trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => toast("Email update flow coming soon")} />
-        <Row icon={<RotateCcw className="h-4 w-4" />} title="Change Password" sub="Last updated 3 months ago" trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => toast("Password reset link sent to your email")} />
+        <Row
+          icon={<AtSign className="h-4 w-4" />}
+          title="Email Address"
+          sub={user?.email ?? "—"}
+          trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />}
+          onClick={() => toast("Email update flow coming soon")}
+        />
+        <Row
+          icon={<RotateCcw className="h-4 w-4" />}
+          title="Change Password"
+          sub="Send a reset link to your email"
+          trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />}
+          onClick={handleChangePassword}
+        />
         <Row icon={<ShieldCheck className="h-4 w-4" />} title="Two-Factor Authentication" sub={<span className="text-gold-foreground font-semibold">Enabled</span>} trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => toast("Two-factor settings coming soon")} />
       </Section>
 

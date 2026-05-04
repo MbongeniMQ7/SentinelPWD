@@ -25,8 +25,8 @@ import { Route as UserOnboardingRouteImport } from './routes/user/onboarding'
 import { Route as UserMonitoringRouteImport } from './routes/user/monitoring'
 import { Route as UserLoginRouteImport } from './routes/user/login'
 import { Route as UserLeaveRouteImport } from './routes/user/leave'
-import { Route as UserDashboardRouteImport } from './routes/user/dashboard'
 import { Route as UserHomeRouteImport } from './routes/user/home'
+import { Route as UserDashboardRouteImport } from './routes/user/dashboard'
 import { Route as UserAlertsRouteImport } from './routes/user/alerts'
 import { Route as OwnerSubscriptionsRouteImport } from './routes/owner/subscriptions'
 import { Route as OwnerSettingsRouteImport } from './routes/owner/settings'
@@ -35,12 +35,13 @@ import { Route as OwnerLoginRouteImport } from './routes/owner/login'
 import { Route as OwnerIssuesRouteImport } from './routes/owner/issues'
 import { Route as OwnerDashboardRouteImport } from './routes/owner/dashboard'
 import { Route as OwnerCompaniesRouteImport } from './routes/owner/companies'
-import { Route as AdminFatigueDashboardRouteImport } from './routes/admin/fatigue-dashboard'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminWorkforceRouteImport } from './routes/admin/workforce'
 import { Route as AdminSupportRouteImport } from './routes/admin/support'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AdminRestRouteImport } from './routes/admin/rest'
 import { Route as AdminOnboardingRouteImport } from './routes/admin/onboarding'
+import { Route as AdminFatigueDashboardRouteImport } from './routes/admin/fatigue-dashboard'
 import { Route as AdminDevicesRouteImport } from './routes/admin/devices'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
 import { Route as AdminBillingRouteImport } from './routes/admin/billing'
@@ -129,14 +130,14 @@ const UserLeaveRoute = UserLeaveRouteImport.update({
   path: '/leave',
   getParentRoute: () => UserRoute,
 } as any)
-const UserDashboardRoute = UserDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => UserRoute,
-} as any)
 const UserHomeRoute = UserHomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => UserRoute,
+} as any)
+const UserDashboardRoute = UserDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => UserRoute,
 } as any)
 const UserAlertsRoute = UserAlertsRouteImport.update({
@@ -179,10 +180,10 @@ const OwnerCompaniesRoute = OwnerCompaniesRouteImport.update({
   path: '/companies',
   getParentRoute: () => OwnerRoute,
 } as any)
-const AdminFatigueDashboardRoute = AdminFatigueDashboardRouteImport.update({
-  id: '/fatigue-dashboard',
-  path: '/fatigue-dashboard',
-  getParentRoute: () => AdminRoute,
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminWorkforceRoute = AdminWorkforceRouteImport.update({
   id: '/workforce',
@@ -207,6 +208,11 @@ const AdminRestRoute = AdminRestRouteImport.update({
 const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFatigueDashboardRoute = AdminFatigueDashboardRouteImport.update({
+  id: '/fatigue-dashboard',
+  path: '/fatigue-dashboard',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminDevicesRoute = AdminDevicesRouteImport.update({
@@ -255,12 +261,13 @@ export interface FileRoutesByFullPath {
   '/admin/billing': typeof AdminBillingRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/devices': typeof AdminDevicesRoute
+  '/admin/fatigue-dashboard': typeof AdminFatigueDashboardRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/rest': typeof AdminRestRoute
-  '/admin/fatigue-dashboard': typeof AdminFatigueDashboardRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/workforce': typeof AdminWorkforceRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/owner/companies': typeof OwnerCompaniesRouteWithChildren
   '/owner/dashboard': typeof OwnerDashboardRoute
   '/owner/issues': typeof OwnerIssuesRoute
@@ -293,12 +300,13 @@ export interface FileRoutesByTo {
   '/admin/billing': typeof AdminBillingRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/devices': typeof AdminDevicesRoute
+  '/admin/fatigue-dashboard': typeof AdminFatigueDashboardRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/rest': typeof AdminRestRoute
-  '/admin/fatigue-dashboard': typeof AdminFatigueDashboardRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/workforce': typeof AdminWorkforceRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/owner/companies': typeof OwnerCompaniesRouteWithChildren
   '/owner/dashboard': typeof OwnerDashboardRoute
   '/owner/issues': typeof OwnerIssuesRoute
@@ -335,12 +343,13 @@ export interface FileRoutesById {
   '/admin/billing': typeof AdminBillingRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/devices': typeof AdminDevicesRoute
+  '/admin/fatigue-dashboard': typeof AdminFatigueDashboardRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/rest': typeof AdminRestRoute
-  '/admin/fatigue-dashboard': typeof AdminFatigueDashboardRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/workforce': typeof AdminWorkforceRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/owner/companies': typeof OwnerCompaniesRouteWithChildren
   '/owner/dashboard': typeof OwnerDashboardRoute
   '/owner/issues': typeof OwnerIssuesRoute
@@ -378,12 +387,13 @@ export interface FileRouteTypes {
     | '/admin/billing'
     | '/admin/dashboard'
     | '/admin/devices'
+    | '/admin/fatigue-dashboard'
     | '/admin/onboarding'
     | '/admin/rest'
     | '/admin/settings'
     | '/admin/support'
-    | '/admin/fatigue-dashboard'
     | '/admin/workforce'
+    | '/auth/callback'
     | '/owner/companies'
     | '/owner/dashboard'
     | '/owner/issues'
@@ -416,12 +426,13 @@ export interface FileRouteTypes {
     | '/admin/billing'
     | '/admin/dashboard'
     | '/admin/devices'
+    | '/admin/fatigue-dashboard'
     | '/admin/onboarding'
     | '/admin/rest'
     | '/admin/settings'
     | '/admin/support'
-    | '/admin/fatigue-dashboard'
     | '/admin/workforce'
+    | '/auth/callback'
     | '/owner/companies'
     | '/owner/dashboard'
     | '/owner/issues'
@@ -457,12 +468,13 @@ export interface FileRouteTypes {
     | '/admin/billing'
     | '/admin/dashboard'
     | '/admin/devices'
+    | '/admin/fatigue-dashboard'
     | '/admin/onboarding'
     | '/admin/rest'
     | '/admin/settings'
     | '/admin/support'
-    | '/admin/fatigue-dashboard'
     | '/admin/workforce'
+    | '/auth/callback'
     | '/owner/companies'
     | '/owner/dashboard'
     | '/owner/issues'
@@ -495,6 +507,7 @@ export interface RootRouteChildren {
   ChooseRoleRoute: typeof ChooseRoleRoute
   OwnerRoute: typeof OwnerRouteWithChildren
   UserRoute: typeof UserRouteWithChildren
+  AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -611,18 +624,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UserLeaveRouteImport
       parentRoute: typeof UserRoute
     }
-    '/user/dashboard': {
-      id: '/user/dashboard'
-      path: '/dashboard'
-      fullPath: '/user/dashboard'
-      preLoaderRoute: typeof UserDashboardRouteImport
-      parentRoute: typeof UserRoute
-    }
     '/user/home': {
       id: '/user/home'
       path: '/home'
       fullPath: '/user/home'
       preLoaderRoute: typeof UserHomeRouteImport
+      parentRoute: typeof UserRoute
+    }
+    '/user/dashboard': {
+      id: '/user/dashboard'
+      path: '/dashboard'
+      fullPath: '/user/dashboard'
+      preLoaderRoute: typeof UserDashboardRouteImport
       parentRoute: typeof UserRoute
     }
     '/user/alerts': {
@@ -681,18 +694,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerCompaniesRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/workforce': {
       id: '/admin/workforce'
       path: '/workforce'
       fullPath: '/admin/workforce'
       preLoaderRoute: typeof AdminWorkforceRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/fatigue-dashboard': {
-      id: '/admin/fatigue-dashboard'
-      path: '/fatigue-dashboard'
-      fullPath: '/admin/fatigue-dashboard'
-      preLoaderRoute: typeof AdminFatigueDashboardRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/support': {
@@ -721,6 +734,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/admin/onboarding'
       preLoaderRoute: typeof AdminOnboardingRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/fatigue-dashboard': {
+      id: '/admin/fatigue-dashboard'
+      path: '/fatigue-dashboard'
+      fullPath: '/admin/fatigue-dashboard'
+      preLoaderRoute: typeof AdminFatigueDashboardRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/devices': {
@@ -883,6 +903,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChooseRoleRoute: ChooseRoleRoute,
   OwnerRoute: OwnerRouteWithChildren,
   UserRoute: UserRouteWithChildren,
+  AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
