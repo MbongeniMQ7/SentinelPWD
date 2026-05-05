@@ -2,9 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/user/AppHeader";
 import { BottomNav } from "@/components/user/BottomNav";
-import { BarChart3, LineChart, TrendingUp, TrendingDown } from "lucide-react";
+import { BarChart3, LineChart, TrendingUp, TrendingDown, Download, Loader2 } from "lucide-react";
 import { loadSessionHistory, type DbSession } from "@/lib/fatigue/sessionStore";
 import { loadAlertsFromDb, type DbAlert } from "@/lib/fatigue/alertLog";
+import { downloadReport } from "@/lib/generateReport";
+import { useProfile } from "@/hooks/useProfile";
 
 export const Route = createFileRoute("/user/reports")({
   component: Reports,
@@ -51,6 +53,9 @@ function Reports() {
   const [sessions, setSessions] = useState<DbSession[]>([]);
   const [alerts, setAlerts] = useState<DbAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState<"week" | "month" | "all" | null>(null);
+  const { profile } = useProfile();
+  const userName = profile?.full_name ?? profile?.email ?? "User";
 
   useEffect(() => {
     Promise.all([loadSessionHistory(60), loadAlertsFromDb(100)]).then(([s, a]) => {
@@ -59,6 +64,13 @@ function Reports() {
       setLoading(false);
     });
   }, []);
+
+  async function handleDownload(period: "week" | "month" | "all") {
+    setDownloading(period);
+    await new Promise((r) => setTimeout(r, 50)); // let state render
+    downloadReport({ userName, sessions, alerts, period });
+    setDownloading(null);
+  }
 
   const now = new Date();
 
@@ -197,6 +209,28 @@ function Reports() {
             accent={highAlerts.length > 0}
           />
           <StatCard label="This Week" value={loading ? "—" : thisWeekAlerts.length.toString()} />
+        </div>
+
+        {/* Download buttons */}
+        <div className="panel p-4">
+          <h3 className="text-base font-display font-bold mb-3">Download Report</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {(["week", "month", "all"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => handleDownload(p)}
+                disabled={loading || downloading !== null}
+                className="rounded-xl bg-navy text-navy-foreground py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {downloading === p ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                {p === "week" ? "This Week" : p === "month" ? "This Month" : "All Time"}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center justify-between pt-2">
