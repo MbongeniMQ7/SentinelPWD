@@ -98,6 +98,12 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Opacity-only fade for app-shell — no transform so position:fixed children stay anchored */
+@keyframes shell-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -390,7 +396,7 @@ body {
     @apply text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground;
   }
 
-  /* App shell */
+  /* App shell — NO transform here: transform on ancestor breaks position:fixed children (bottom nav) */
   .app-shell {
     @apply w-full relative bg-background;
     min-height: 100dvh;
@@ -398,7 +404,7 @@ body {
     margin-inline: auto;
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
     overflow-x: hidden;
-    animation: fade-in 0.4s ease-out;
+    animation: shell-fade 0.3s ease-out;
   }
   .topbar {
     @apply sticky top-0 z-30 flex items-center justify-between px-5 py-4 bg-white/90 backdrop-blur-sm text-primary;
