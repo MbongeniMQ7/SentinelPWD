@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/user/AppHeader";
 import { BottomNav } from "@/components/user/BottomNav";
-import { Radio, Heart, Activity, Footprints, Play, Pause, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Radio, Heart, Activity, Footprints, Play, Pause, AlertTriangle, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { useWorkforceStatus } from "@/hooks/useFatigueMonitor";
 import { riskLabel } from "@/lib/fatigue/riskScore";
+import { loadAlertsFromDb, type DbAlert } from "@/lib/fatigue/alertLog";
 
 const CURRENT_WORKER_ID = "WK-MARCUS-CHEN";
 
@@ -15,7 +16,16 @@ export const Route = createFileRoute("/user/home")({
 
 function Home() {
   const [monitoring, setMonitoring] = useState(false);
+  const [recentAlerts, setRecentAlerts] = useState<DbAlert[]>([]);
+  const [alertsLoading, setAlertsLoading] = useState(true);
   const workforce = useWorkforceStatus();
+
+  useEffect(() => {
+    loadAlertsFromDb(5).then(({ alerts }) => {
+      setRecentAlerts(alerts);
+      setAlertsLoading(false);
+    });
+  }, []);
   const snap = workforce.workers[CURRENT_WORKER_ID];
   const liveScore = snap?.score ?? 0;
   const liveLevel = snap?.level ?? "low";
@@ -141,20 +151,23 @@ function Home() {
           </Link>
         </div>
 
-        <AlertRow
-          icon={<AlertTriangle className="h-4 w-4 text-warning" />}
-          iconBg="bg-warning-soft"
-          title="Hydration Reminder"
-          desc="Biometrics indicate slight dehydration. Dri…"
-          time="14:02"
-        />
-        <AlertRow
-          icon={<CheckCircle2 className="h-4 w-4 text-success" />}
-          iconBg="bg-success-soft"
-          title="Vitals Verified"
-          desc="Heart rate and ocular focus remain optimal."
-          time="12:30"
-        />
+        {alertsLoading ? (
+          <>
+            <div className="panel p-3 h-14 animate-pulse bg-secondary/50 rounded-2xl" />
+            <div className="panel p-3 h-14 animate-pulse bg-secondary/50 rounded-2xl" />
+          </>
+        ) : recentAlerts.length === 0 ? (
+          <div className="panel p-4 flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-success-soft flex items-center justify-center">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+            </div>
+            <div className="text-sm text-muted-foreground">No alerts recorded yet — all clear.</div>
+          </div>
+        ) : (
+          recentAlerts.map((alert) => (
+            <AlertRow key={alert.id} alert={alert} />
+          ))
+        )}
       </main>
 
       <BottomNav />
@@ -162,18 +175,27 @@ function Home() {
   );
 }
 
-function AlertRow({
-  icon, iconBg, title, desc, time,
-}: { icon: React.ReactNode; iconBg: string; title: string; desc: string; time: string }) {
+function AlertRow({ alert }: { alert: DbAlert }) {
+  const isHigh = alert.level === "high";
+  const iconBg = isHigh ? "bg-danger-soft" : "bg-warning-soft";
+  const icon = isHigh
+    ? <ShieldAlert className="h-4 w-4 text-danger" />
+    : <AlertTriangle className="h-4 w-4 text-warning" />;
+  const time = new Date(alert.fired_at).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   return (
     <div className="panel p-3 flex items-start gap-3">
       <div className={`h-8 w-8 rounded-lg ${iconBg} flex items-center justify-center`}>{icon}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2">
-          <div className="font-semibold text-sm truncate">{title}</div>
+          <div className="font-semibold text-sm truncate capitalize">
+            {isHigh ? "High Risk Alert" : "Moderate Alert"}
+          </div>
           <div className="text-xs text-muted-foreground shrink-0">{time}</div>
         </div>
-        <div className="text-xs text-muted-foreground truncate">{desc}</div>
+        <div className="text-xs text-muted-foreground truncate">{alert.message}</div>
       </div>
     </div>
   );
