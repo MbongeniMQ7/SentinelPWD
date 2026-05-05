@@ -27,6 +27,7 @@ import { Route as UserLoginRouteImport } from './routes/user/login'
 import { Route as UserLeaveRouteImport } from './routes/user/leave'
 import { Route as UserHomeRouteImport } from './routes/user/home'
 import { Route as UserDashboardRouteImport } from './routes/user/dashboard'
+import { Route as UserBreaksRouteImport } from './routes/user/breaks'
 import { Route as UserAlertsRouteImport } from './routes/user/alerts'
 import { Route as OwnerSubscriptionsRouteImport } from './routes/owner/subscriptions'
 import { Route as OwnerSettingsRouteImport } from './routes/owner/settings'
@@ -138,6 +139,11 @@ const UserHomeRoute = UserHomeRouteImport.update({
 const UserDashboardRoute = UserDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => UserRoute,
+} as any)
+const UserBreaksRoute = UserBreaksRouteImport.update({
+  id: '/breaks',
+  path: '/breaks',
   getParentRoute: () => UserRoute,
 } as any)
 const UserAlertsRoute = UserAlertsRouteImport.update({
@@ -276,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/subscriptions': typeof OwnerSubscriptionsRoute
   '/user/alerts': typeof UserAlertsRoute
+  '/user/breaks': typeof UserBreaksRoute
   '/user/dashboard': typeof UserDashboardRoute
   '/user/home': typeof UserHomeRoute
   '/user/leave': typeof UserLeaveRoute
@@ -315,6 +322,7 @@ export interface FileRoutesByTo {
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/subscriptions': typeof OwnerSubscriptionsRoute
   '/user/alerts': typeof UserAlertsRoute
+  '/user/breaks': typeof UserBreaksRoute
   '/user/dashboard': typeof UserDashboardRoute
   '/user/home': typeof UserHomeRoute
   '/user/leave': typeof UserLeaveRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/subscriptions': typeof OwnerSubscriptionsRoute
   '/user/alerts': typeof UserAlertsRoute
+  '/user/breaks': typeof UserBreaksRoute
   '/user/dashboard': typeof UserDashboardRoute
   '/user/home': typeof UserHomeRoute
   '/user/leave': typeof UserLeaveRoute
@@ -402,6 +411,7 @@ export interface FileRouteTypes {
     | '/owner/settings'
     | '/owner/subscriptions'
     | '/user/alerts'
+    | '/user/breaks'
     | '/user/dashboard'
     | '/user/home'
     | '/user/leave'
@@ -441,6 +451,7 @@ export interface FileRouteTypes {
     | '/owner/settings'
     | '/owner/subscriptions'
     | '/user/alerts'
+    | '/user/breaks'
     | '/user/dashboard'
     | '/user/home'
     | '/user/leave'
@@ -483,6 +494,7 @@ export interface FileRouteTypes {
     | '/owner/settings'
     | '/owner/subscriptions'
     | '/user/alerts'
+    | '/user/breaks'
     | '/user/dashboard'
     | '/user/home'
     | '/user/leave'
@@ -636,6 +648,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/user/dashboard'
       preLoaderRoute: typeof UserDashboardRouteImport
+      parentRoute: typeof UserRoute
+    }
+    '/user/breaks': {
+      id: '/user/breaks'
+      path: '/breaks'
+      fullPath: '/user/breaks'
+      preLoaderRoute: typeof UserBreaksRouteImport
       parentRoute: typeof UserRoute
     }
     '/user/alerts': {
@@ -867,6 +886,7 @@ const OwnerRouteWithChildren = OwnerRoute._addFileChildren(OwnerRouteChildren)
 
 interface UserRouteChildren {
   UserAlertsRoute: typeof UserAlertsRoute
+  UserBreaksRoute: typeof UserBreaksRoute
   UserDashboardRoute: typeof UserDashboardRoute
   UserHomeRoute: typeof UserHomeRoute
   UserLeaveRoute: typeof UserLeaveRoute
@@ -882,6 +902,7 @@ interface UserRouteChildren {
 
 const UserRouteChildren: UserRouteChildren = {
   UserAlertsRoute: UserAlertsRoute,
+  UserBreaksRoute: UserBreaksRoute,
   UserDashboardRoute: UserDashboardRoute,
   UserHomeRoute: UserHomeRoute,
   UserLeaveRoute: UserLeaveRoute,

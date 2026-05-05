@@ -112,8 +112,11 @@ function Alerts() {
                       Your fatigue score reached {a.score}/100. {a.message}
                     </p>
                     <div className="mt-3 flex gap-2">
-                      <Link to="/user/leave" className="rounded-xl bg-navy text-navy-foreground text-xs font-bold px-4 py-2.5">
+                      <Link to="/user/breaks" className="rounded-xl bg-navy text-navy-foreground text-xs font-bold px-4 py-2.5">
                         Request Break
+                      </Link>
+                      <Link to="/user/leave" className="rounded-xl bg-gold-soft text-gold-foreground text-xs font-bold px-4 py-2.5">
+                        Apply Leave
                       </Link>
                       <button
                         onClick={() => handleAcknowledgeLiveOnly(a.id)}
@@ -129,10 +132,10 @@ function Alerts() {
           </>
         )}
 
-        {/* â”€â”€ Live MODERATE fatigue alerts (current session) â”€â”€ */}
+        {/* ── Live MODERATE fatigue alerts (current session) ── */}
         {liveModerateAlerts.length > 0 && (
           <>
-            <span className="label-eyebrow">Elevated Risk â€” Right Now</span>
+            <span className="label-eyebrow">Elevated Risk — Right Now</span>
             {liveModerateAlerts.map((a) => (
               <div key={a.id} className="panel p-4 border-l-4 border-l-gold">
                 <div className="flex items-start gap-3">
@@ -150,7 +153,7 @@ function Alerts() {
                       Your fatigue score reached {a.score}/100. {a.message}
                     </p>
                     <div className="mt-3 flex gap-2">
-                      <Link to="/user/leave" className="rounded-xl bg-navy text-navy-foreground text-xs font-bold px-4 py-2.5">
+                      <Link to="/user/breaks" className="rounded-xl bg-navy text-navy-foreground text-xs font-bold px-4 py-2.5">
                         Request Break
                       </Link>
                       <button
@@ -167,7 +170,7 @@ function Alerts() {
           </>
         )}
 
-        {/* â”€â”€ Past 24 hours from DB â”€â”€ */}
+        {/* ── Past 24 hours from DB ── */}
         <div className="flex items-center justify-between pt-2">
           <span className="label-eyebrow">Past 24 Hours</span>
           <button
