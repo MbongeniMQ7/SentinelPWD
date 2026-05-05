@@ -78,12 +78,11 @@
   --animate-spin-slow: spin-slow 3s linear infinite;
 }
 
-/* Lock viewport — prevents page from floating/shifting on any device */
+/* Prevent rubber-band bounce and horizontal overflow on mobile */
 html,
 body {
-  height: 100%;
   overflow-x: hidden;
-  overscroll-behavior: none;
+  overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
 }
 

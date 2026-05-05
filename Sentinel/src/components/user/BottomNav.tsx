@@ -12,7 +12,7 @@ const items = [
 export function BottomNav() {
   const { pathname } = useLocation();
   return (
-    <nav className="sticky bottom-0 left-0 right-0 z-30 bg-card border-t border-border">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t border-border" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
       <ul className="grid grid-cols-5 px-1 py-2">
         {items.map(({ to, label, icon: Icon }) => {
           const active = pathname === to;
