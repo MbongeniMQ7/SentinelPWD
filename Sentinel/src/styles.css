@@ -78,6 +78,22 @@
   --animate-spin-slow: spin-slow 3s linear infinite;
 }
 
+/* Lock viewport — prevents page from floating/shifting on any device */
+html,
+body {
+  height: 100%;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: oklch(0.94 0.008 245); /* slightly off-white outside app width */
+}
+
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -377,8 +393,12 @@
 
   /* App shell */
   .app-shell {
-    @apply mx-auto w-full min-h-screen relative bg-background;
+    @apply w-full relative bg-background;
+    min-height: 100dvh;
+    max-width: 480px;
+    margin-inline: auto;
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    overflow-x: hidden;
     animation: fade-in 0.4s ease-out;
   }
   .topbar {
