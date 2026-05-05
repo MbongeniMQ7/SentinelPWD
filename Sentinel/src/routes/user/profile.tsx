@@ -45,8 +45,8 @@ function Profile() {
 
   return (
     <div className="app-shell flex flex-col">
-      <AppHeader battery={null} />
-      <main className="flex-1 px-5 pb-6 space-y-5">
+      <AppHeader battery={null} title="Profile" />
+      <main className="flex-1 px-8 py-6 space-y-5 max-w-3xl">
         {/* Profile hero */}
         <div className="panel bg-navy text-navy-foreground p-5 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-gold/10" />

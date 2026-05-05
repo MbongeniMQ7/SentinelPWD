@@ -396,13 +396,12 @@ body {
     @apply text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground;
   }
 
-  /* App shell — NO transform here: transform on ancestor breaks position:fixed children (bottom nav) */
+  /* App shell — full-width web layout with left sidebar */
   .app-shell {
     @apply w-full relative bg-background;
     min-height: 100dvh;
-    max-width: 480px;
-    margin-inline: auto;
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    padding-left: 220px; /* sidebar width */
+    padding-bottom: 0;
     overflow-x: hidden;
     animation: shell-fade 0.3s ease-out;
   }

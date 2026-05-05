@@ -55,9 +55,9 @@ function Home() {
   };
   return (
     <div className="app-shell flex flex-col">
-      <AppHeader battery="98% BLE" />
+      <AppHeader battery="98% BLE" title="Home" />
 
-      <main className="flex-1 px-5 pb-6 space-y-5">
+      <main className="flex-1 px-8 py-6 space-y-5 max-w-3xl">
         {/* IoT status */}
         <div className="panel px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">

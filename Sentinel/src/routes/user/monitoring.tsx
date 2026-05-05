@@ -116,8 +116,8 @@ function Monitoring() {
             : "SEARCHING";
   return (
     <div className="app-shell flex flex-col">
-      <AppHeader battery="98% BLE" />
-      <main className="flex-1 px-5 pb-6 space-y-5">
+      <AppHeader battery="98% BLE" title="Live Monitoring" />
+      <main className="flex-1 px-8 py-6 space-y-5 max-w-3xl">
         {/* Live stream panel */}
         <div className="panel p-5">
           <div className="flex items-start justify-between">

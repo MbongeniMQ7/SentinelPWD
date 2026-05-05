@@ -84,8 +84,8 @@ function Breaks() {
 
   return (
     <div className="app-shell flex flex-col">
-      <AppHeader battery={null} />
-      <main className="flex-1 px-5 pb-6 space-y-5">
+      <AppHeader battery={null} title="Break Requests" />
+      <main className="flex-1 px-8 py-6 space-y-5 max-w-4xl">
 
         {/* Back + title */}
         <div className="flex items-center gap-3 pt-1">

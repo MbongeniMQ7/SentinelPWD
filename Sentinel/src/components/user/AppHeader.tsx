@@ -1,11 +1,12 @@
-import { BrandLogo } from "./BrandLogo";
 import { AvatarBadge } from "./AvatarBadge";
 
-export function AppHeader({ battery = "98% BLE" }: { battery?: string | null }) {
+export function AppHeader({ battery = "98% BLE", title }: { battery?: string | null; title?: string }) {
   return (
-    <header className="flex items-center justify-between px-5 pt-5 pb-3">
-      <BrandLogo />
-      <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-20 flex items-center justify-between px-6 py-3 bg-card/90 backdrop-blur-sm border-b border-border">
+      <div className="font-display font-semibold text-lg text-foreground">
+        {title ?? "Dashboard"}
+      </div>
+      <div className="flex items-center gap-3">
         {battery && (
           <span className="rounded-full bg-gold-soft px-3 py-1 text-[11px] font-bold text-gold-foreground">
             {battery}
@@ -16,3 +17,4 @@ export function AppHeader({ battery = "98% BLE" }: { battery?: string | null }) 
     </header>
   );
 }
+
