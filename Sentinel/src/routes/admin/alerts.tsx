@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/admin/layout/AppShell";
 import { TopBar } from "@/components/admin/layout/TopBar";
 import { StatusBadge } from "@/components/admin/sentinel/StatusBadge";
-import { useAlertLog, acknowledgeAlert } from "@/lib/fatigue/alertLog";
-import { AlertTriangle, EyeOff, Router as RouterIcon, Clock, UserCog, BarChart3, Send, Activity, Check } from "lucide-react";
+import { useAlertLog, acknowledgeAlert, acknowledgeAlertInDb, loadAllAlertsFromDb, type AdminDbAlert } from "@/lib/fatigue/alertLog";
+import { AlertTriangle, Clock, BarChart3, Send, Activity, Check, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/alerts")({
   head: () => ({
@@ -20,13 +20,40 @@ export const Route = createFileRoute("/admin/alerts")({
 function AlertsPage() {
   const [filter, setFilter] = useState<"ALL" | "FATIGUE" | "FOCUS" | "HARDWARE">("ALL");
   const alertLog = useAlertLog();
+  const [dbAlerts, setDbAlerts] = useState<AdminDbAlert[]>([]);
+  const [dbLoading, setDbLoading] = useState(true);
 
-  // Live alerts that match the active filter. Worker/manager alerts from the
-  // bus are all fatigue-driven, so they show under ALL and FATIGUE.
+  useEffect(() => {
+    loadAllAlertsFromDb(100).then(({ alerts }) => {
+      setDbAlerts(alerts);
+      setDbLoading(false);
+    });
+  }, []);
+
+  // Live alerts from the in-memory bus (current session only)
   const liveAlerts = alertLog.filter((a) => {
     if (filter === "ALL" || filter === "FATIGUE") return true;
     return false;
   });
+
+  // DB alerts filtered by type
+  const filteredDb = dbAlerts.filter((a) => {
+    if (filter === "FOCUS" || filter === "HARDWARE") return false; // fatigue-only data
+    return true;
+  });
+
+  // Deduplicate: suppress DB entries already shown as live (within same minute)
+  const liveKeys = new Set(alertLog.map((a) => new Date(a.timestamp).toISOString().slice(0, 16)));
+  const dedupedDb = filteredDb.filter(
+    (a) => !liveKeys.has(new Date(a.fired_at).toISOString().slice(0, 16))
+  );
+
+  async function handleAcknowledgeDb(id: string) {
+    await acknowledgeAlertInDb(id);
+    setDbAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, acknowledged: true } : a)));
+    toast.success("Alert acknowledged");
+  }
+
   return (
     <AppShell>
       <TopBar />
@@ -91,34 +118,61 @@ function AlertsPage() {
             </div>
           </div>
         ))}
-        <AlertCard
-          icon={<AlertTriangle className="h-5 w-5 text-critical" />} bg="bg-critical/10"
-          title="High Fatigue Detected" meta={<>Employee: <b>Marcus Thorne</b> • ID: 8824</>}
-          time="14:22:05 (2m ago)"
-          badge={<StatusBadge variant="critical">Critical</StatusBadge>}
-          footer={<div className="flex items-center gap-2 pt-3 border-t border-border"><div className="h-6 w-6 rounded-full bg-warning flex items-center justify-center"><UserCog className="h-3.5 w-3.5 text-ink" /></div><span className="text-[11px] font-extrabold tracking-wider text-ink uppercase">Escalated to: Floor Supervisor</span></div>}
-        />
-        <AlertCard
-          icon={<EyeOff className="h-5 w-5 text-warning-foreground" />} bg="bg-warning"
-          title="Focus Loss Alert" meta={<>Employee: <b>Sarah Jenkins</b> • ID: 4102</>}
-          time="14:15:30 (9m ago)"
-          badge={<StatusBadge variant="warning">Moderate</StatusBadge>}
-          footer={<p className="text-[11px] font-extrabold tracking-wider text-warning-foreground uppercase pt-2">Pending Review</p>}
-        />
-        <AlertCard
-          icon={<RouterIcon className="h-5 w-5 text-ink-soft" />} bg="bg-muted"
-          title="Device Disconnected" meta={<>Station: <b>Assembly North-04</b> • ID: AX-400</>}
-          time="14:02:11 (22m ago)"
-          badge={<StatusBadge variant="info">System</StatusBadge>}
-          footer={<p className="text-[11px] font-extrabold tracking-wider text-ink-soft uppercase pt-2">Maintenance Ticket Created</p>}
-        />
-        <AlertCard
-          icon={<AlertTriangle className="h-5 w-5 text-critical" />} bg="bg-critical/10"
-          title="High Fatigue Detected" meta={<>Employee: <b>Elena Rodriguez</b> • ID: 7721</>}
-          time="13:55:45 (29m ago)"
-          badge={<StatusBadge variant="critical">Critical</StatusBadge>}
-          footer={<span className="inline-flex items-center px-2.5 py-1 rounded-md bg-info-soft text-[10px] font-extrabold tracking-wider text-ink uppercase mt-1">Action Required</span>}
-        />
+        {/* ── Persisted alert history from DB ── */}
+        {dbLoading ? (
+          <div className="flex items-center justify-center py-10 text-ink-soft">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading alert history…
+          </div>
+        ) : dedupedDb.length === 0 && liveAlerts.length === 0 ? (
+          <div className="text-center py-10 text-ink-soft text-[13px] font-semibold">
+            No alerts recorded yet
+          </div>
+        ) : (
+          dedupedDb.map((a) => (
+            <div
+              key={a.id}
+              className={`bg-surface rounded-2xl p-4 shadow-sm ${a.acknowledged ? "opacity-60" : ""}`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${a.level === "high" ? "bg-critical/10" : "bg-warning/30"}`}>
+                  {a.level === "high"
+                    ? <AlertTriangle className="h-5 w-5 text-critical" />
+                    : <Activity className="h-5 w-5 text-warning-foreground" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-[16px] font-extrabold text-ink leading-tight">
+                      {a.level === "high" ? "High Fatigue Detected" : "Elevated Fatigue Risk"}
+                    </h3>
+                    <StatusBadge variant={a.level === "high" ? "critical" : "warning"}>
+                      {a.level === "high" ? "Critical" : "Moderate"}
+                    </StatusBadge>
+                  </div>
+                  <p className="mt-1 text-[12px] text-ink-soft">
+                    {a.worker_name ? <>Employee: <b>{a.worker_name}</b></> : "Unknown employee"} • Score: {a.score}/100
+                  </p>
+                  <p className="mt-1 text-[11px] text-ink-soft">{a.message}</p>
+                  <p className="mt-1 text-[11px] text-ink-soft flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {new Date(a.fired_at).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-2 flex items-center justify-between pt-3 border-t border-border">
+                <span className="text-[11px] font-extrabold tracking-wider text-ink-soft uppercase">
+                  {a.kind === "manager" ? "Manager Alert" : "Worker Alert"}
+                </span>
+                <button
+                  disabled={a.acknowledged}
+                  onClick={() => handleAcknowledgeDb(a.id)}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary text-primary-foreground px-2.5 py-1 text-[10px] font-extrabold tracking-wider uppercase disabled:opacity-50"
+                >
+                  <Check className="h-3 w-3" /> {a.acknowledged ? "Acknowledged" : "Acknowledge"}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
 
         <section className="relative rounded-2xl p-5 text-primary-foreground overflow-hidden" style={{ background: "linear-gradient(135deg, oklch(0.4 0.04 260), oklch(0.5 0.05 260))" }}>
           <h3 className="text-[20px] font-extrabold">Shift Overview</h3>

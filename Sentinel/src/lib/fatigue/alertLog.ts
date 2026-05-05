@@ -175,6 +175,42 @@ export async function loadAlertsFromDb(
 }
 
 /**
+ * Admin/owner view: load alerts for ALL users (relies on the
+ * "Admins and owners can read all alerts" RLS policy on fatigue_alerts).
+ * Joins profiles to include the worker's display name.
+ */
+export interface AdminDbAlert extends DbAlert {
+  worker_name: string | null;
+  worker_id: string;
+}
+
+export async function loadAllAlertsFromDb(
+  limit = 100
+): Promise<{ alerts: AdminDbAlert[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from("fatigue_alerts")
+    .select("id, kind, level, score, message, acknowledged, fired_at, user_id, profiles(full_name)")
+    .order("fired_at", { ascending: false })
+    .limit(limit);
+
+  if (error) return { alerts: [], error: error.message };
+
+  const alerts: AdminDbAlert[] = (data ?? []).map((row: any) => ({
+    id: row.id,
+    kind: row.kind,
+    level: row.level,
+    score: row.score,
+    message: row.message,
+    acknowledged: row.acknowledged,
+    fired_at: row.fired_at,
+    worker_id: row.user_id,
+    worker_name: row.profiles?.full_name ?? null,
+  }));
+
+  return { alerts, error: null };
+}
+
+/**
  * Mark an alert as acknowledged in Supabase.
  */
 export async function acknowledgeAlertInDb(id: string): Promise<void> {
