@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/context/AuthContext";
 import { signOut, resetPassword } from "@/lib/auth";
-import avatarImg from "@/assets/avatar-marcus.jpg";
 
 export const Route = createFileRoute("/user/profile")({
   component: Profile,
@@ -21,6 +20,13 @@ function Profile() {
 
   const displayName = profile?.full_name ?? user?.user_metadata?.full_name ?? "—";
   const jobTitle = profile?.job_title ?? profile?.department ?? "Sentinel User";
+  const [avatarError, setAvatarError] = useState(false);
+  const initials = displayName
+    .split(" ")
+    .slice(0, 2)
+    .map((w: string) => w[0])
+    .join("")
+    .toUpperCase();
 
   async function handleLogout() {
     await signOut();
@@ -46,13 +52,21 @@ function Profile() {
           <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-gold/10" />
           <div className="flex items-start gap-4 relative">
             <div className="relative">
-              <div className="h-20 w-20 rounded-2xl overflow-hidden bg-card flex items-center justify-center">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
-                ) : loading ? (
+              <div className="h-20 w-20 rounded-2xl overflow-hidden bg-navy/20 flex items-center justify-center">
+                {loading ? (
                   <div className="w-full h-full bg-navy-foreground/10 animate-pulse" />
+                ) : profile?.avatar_url && !avatarError ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={displayName}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                    onError={() => setAvatarError(true)}
+                  />
                 ) : (
-                  <img src={avatarImg} alt={displayName} className="w-full h-full object-cover" />
+                  <span className="text-2xl font-display font-bold text-navy-foreground">
+                    {initials || <UserCircle2 className="h-10 w-10 text-navy-foreground/50" />}
+                  </span>
                 )}
               </div>
               <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-gold-soft flex items-center justify-center ring-2 ring-navy">
