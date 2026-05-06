@@ -80,3 +80,17 @@ export async function resetPassword(email: string): Promise<{ error: string | nu
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
+
+/**
+ * Sign in without requiring a known role upfront.
+ * Returns the detected role so the caller can redirect accordingly.
+ */
+export async function signInAny(
+  email: string,
+  password: string
+): Promise<{ error: string | null; role: AppRole | null }> {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { error: error.message, role: null };
+  const role = (data.user?.user_metadata?.role as AppRole) ?? null;
+  return { error: null, role };
+}

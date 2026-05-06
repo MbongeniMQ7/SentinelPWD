@@ -61,8 +61,8 @@
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
 
-  --font-display: "Fraunces", Georgia, serif;
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Arial Black", "Arial Bold", Arial, sans-serif;
+  --font-sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
 
   --shadow-card: var(--shadow-card);
   --shadow-soft: var(--shadow-soft);
@@ -306,9 +306,9 @@ body {
   --shadow-soft: 0 4px 16px -8px hsl(222 60% 5% / 0.25);
 }
 
-/* Owner uses Sora display font */
+/* Owner uses Arial Black display font */
 [data-role="owner"] {
-  --font-display: "Sora", "Inter", sans-serif;
+  --font-display: "Arial Black", "Arial Bold", Arial, sans-serif;
 }
 
 /* =================================================================
