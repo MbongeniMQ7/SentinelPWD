@@ -18,9 +18,6 @@ function Welcome() {
       <header className="w-full border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
           <BrandLogo size="md" />
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <a href="#about" className="hover:text-foreground transition">About</a>
-          </nav>
           <Link
             to="/choose-role"
             className="inline-flex items-center gap-2 rounded-full bg-gold-soft hover:bg-gold/80 transition px-5 py-2.5 text-sm font-bold text-gold-foreground"
