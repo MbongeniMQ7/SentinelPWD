@@ -18,7 +18,7 @@ const roleRedirects: Record<AppRole, string> = {
 };
 
 function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,7 +28,7 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error, role } = await signInAny(email, password);
+      const { error, role } = await signInAny(emailOrUsername, password);
       if (error) {
         toast.error(error);
         return;
@@ -144,24 +144,24 @@ function LoginPage() {
               Sign in
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Enter your email and password to access your dashboard.
+              Enter your username or email and password to access your dashboard.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
               {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  Email address
+                  Username or email
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
-                    type="email"
+                    type="text"
                     required
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    autoComplete="username"
+                    value={emailOrUsername}
+                    onChange={(e) => setEmailOrUsername(e.target.value)}
+                    placeholder="SentinelAI or you@example.com"
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-navy/30 transition"
                   />
                 </div>

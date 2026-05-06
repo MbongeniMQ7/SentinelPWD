@@ -41,12 +41,31 @@ async function fetchRoleForUser(authUserId: string): Promise<AppRole | null> {
 
 /**
  * Sign in without requiring a known role upfront.
+ * Accepts either an email address or a username (looked up in profiles table).
  * Reads role from the profiles table after authentication.
  */
 export async function signInAny(
-  email: string,
+  emailOrUsername: string,
   password: string
 ): Promise<{ error: string | null; role: AppRole | null }> {
+  // Determine actual email to use for Supabase Auth
+  let email = emailOrUsername.trim();
+  const isEmail = email.includes("@");
+
+  if (!isEmail) {
+    // Look up email via username in profiles table
+    const { data: profileRow, error: lookupErr } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("username", email)
+      .maybeSingle();
+
+    if (lookupErr || !profileRow?.email) {
+      return { error: "No account found with that username.", role: null };
+    }
+    email = profileRow.email;
+  }
+
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: error.message, role: null };
 

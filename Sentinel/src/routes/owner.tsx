@@ -3,11 +3,13 @@ import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/owner")({
   beforeLoad: async ({ location }) => {
-    if (location.pathname === "/owner/login" || location.pathname === "/owner/") return;
+    if (location.pathname === "/owner/login" || location.pathname === "/owner/") {
+      throw redirect({ to: "/choose-role" });
+    }
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      throw redirect({ to: "/owner/login" });
+      throw redirect({ to: "/choose-role" });
     }
 
     const { data: profile } = await supabase
