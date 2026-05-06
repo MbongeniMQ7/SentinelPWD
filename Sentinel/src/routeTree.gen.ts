@@ -29,13 +29,20 @@ import { Route as UserHomeRouteImport } from './routes/user/home'
 import { Route as UserDashboardRouteImport } from './routes/user/dashboard'
 import { Route as UserBreaksRouteImport } from './routes/user/breaks'
 import { Route as UserAlertsRouteImport } from './routes/user/alerts'
+import { Route as OwnerUsersRouteImport } from './routes/owner/users'
 import { Route as OwnerSubscriptionsRouteImport } from './routes/owner/subscriptions'
 import { Route as OwnerSettingsRouteImport } from './routes/owner/settings'
 import { Route as OwnerRevenueRouteImport } from './routes/owner/revenue'
+import { Route as OwnerReportsRouteImport } from './routes/owner/reports'
 import { Route as OwnerLoginRouteImport } from './routes/owner/login'
 import { Route as OwnerIssuesRouteImport } from './routes/owner/issues'
+import { Route as OwnerIotRouteImport } from './routes/owner/iot'
 import { Route as OwnerDashboardRouteImport } from './routes/owner/dashboard'
+import { Route as OwnerCreateManagerRouteImport } from './routes/owner/create-manager'
 import { Route as OwnerCompaniesRouteImport } from './routes/owner/companies'
+import { Route as OwnerCameraRouteImport } from './routes/owner/camera'
+import { Route as OwnerAlertsRouteImport } from './routes/owner/alerts'
+import { Route as OwnerActivityRouteImport } from './routes/owner/activity'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminWorkforceRouteImport } from './routes/admin/workforce'
 import { Route as AdminSupportRouteImport } from './routes/admin/support'
@@ -151,6 +158,11 @@ const UserAlertsRoute = UserAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => UserRoute,
 } as any)
+const OwnerUsersRoute = OwnerUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const OwnerSubscriptionsRoute = OwnerSubscriptionsRouteImport.update({
   id: '/subscriptions',
   path: '/subscriptions',
@@ -166,6 +178,11 @@ const OwnerRevenueRoute = OwnerRevenueRouteImport.update({
   path: '/revenue',
   getParentRoute: () => OwnerRoute,
 } as any)
+const OwnerReportsRoute = OwnerReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const OwnerLoginRoute = OwnerLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -176,14 +193,39 @@ const OwnerIssuesRoute = OwnerIssuesRouteImport.update({
   path: '/issues',
   getParentRoute: () => OwnerRoute,
 } as any)
+const OwnerIotRoute = OwnerIotRouteImport.update({
+  id: '/iot',
+  path: '/iot',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const OwnerDashboardRoute = OwnerDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => OwnerRoute,
 } as any)
+const OwnerCreateManagerRoute = OwnerCreateManagerRouteImport.update({
+  id: '/create-manager',
+  path: '/create-manager',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const OwnerCompaniesRoute = OwnerCompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerCameraRoute = OwnerCameraRouteImport.update({
+  id: '/camera',
+  path: '/camera',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerAlertsRoute = OwnerAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerActivityRoute = OwnerActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
   getParentRoute: () => OwnerRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -274,13 +316,20 @@ export interface FileRoutesByFullPath {
   '/admin/support': typeof AdminSupportRoute
   '/admin/workforce': typeof AdminWorkforceRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/owner/activity': typeof OwnerActivityRoute
+  '/owner/alerts': typeof OwnerAlertsRoute
+  '/owner/camera': typeof OwnerCameraRoute
   '/owner/companies': typeof OwnerCompaniesRouteWithChildren
+  '/owner/create-manager': typeof OwnerCreateManagerRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/iot': typeof OwnerIotRoute
   '/owner/issues': typeof OwnerIssuesRoute
   '/owner/login': typeof OwnerLoginRoute
+  '/owner/reports': typeof OwnerReportsRoute
   '/owner/revenue': typeof OwnerRevenueRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/subscriptions': typeof OwnerSubscriptionsRoute
+  '/owner/users': typeof OwnerUsersRoute
   '/user/alerts': typeof UserAlertsRoute
   '/user/breaks': typeof UserBreaksRoute
   '/user/dashboard': typeof UserDashboardRoute
@@ -314,13 +363,20 @@ export interface FileRoutesByTo {
   '/admin/support': typeof AdminSupportRoute
   '/admin/workforce': typeof AdminWorkforceRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/owner/activity': typeof OwnerActivityRoute
+  '/owner/alerts': typeof OwnerAlertsRoute
+  '/owner/camera': typeof OwnerCameraRoute
   '/owner/companies': typeof OwnerCompaniesRouteWithChildren
+  '/owner/create-manager': typeof OwnerCreateManagerRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/iot': typeof OwnerIotRoute
   '/owner/issues': typeof OwnerIssuesRoute
   '/owner/login': typeof OwnerLoginRoute
+  '/owner/reports': typeof OwnerReportsRoute
   '/owner/revenue': typeof OwnerRevenueRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/subscriptions': typeof OwnerSubscriptionsRoute
+  '/owner/users': typeof OwnerUsersRoute
   '/user/alerts': typeof UserAlertsRoute
   '/user/breaks': typeof UserBreaksRoute
   '/user/dashboard': typeof UserDashboardRoute
@@ -358,13 +414,20 @@ export interface FileRoutesById {
   '/admin/support': typeof AdminSupportRoute
   '/admin/workforce': typeof AdminWorkforceRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/owner/activity': typeof OwnerActivityRoute
+  '/owner/alerts': typeof OwnerAlertsRoute
+  '/owner/camera': typeof OwnerCameraRoute
   '/owner/companies': typeof OwnerCompaniesRouteWithChildren
+  '/owner/create-manager': typeof OwnerCreateManagerRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/iot': typeof OwnerIotRoute
   '/owner/issues': typeof OwnerIssuesRoute
   '/owner/login': typeof OwnerLoginRoute
+  '/owner/reports': typeof OwnerReportsRoute
   '/owner/revenue': typeof OwnerRevenueRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/subscriptions': typeof OwnerSubscriptionsRoute
+  '/owner/users': typeof OwnerUsersRoute
   '/user/alerts': typeof UserAlertsRoute
   '/user/breaks': typeof UserBreaksRoute
   '/user/dashboard': typeof UserDashboardRoute
@@ -403,13 +466,20 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/workforce'
     | '/auth/callback'
+    | '/owner/activity'
+    | '/owner/alerts'
+    | '/owner/camera'
     | '/owner/companies'
+    | '/owner/create-manager'
     | '/owner/dashboard'
+    | '/owner/iot'
     | '/owner/issues'
     | '/owner/login'
+    | '/owner/reports'
     | '/owner/revenue'
     | '/owner/settings'
     | '/owner/subscriptions'
+    | '/owner/users'
     | '/user/alerts'
     | '/user/breaks'
     | '/user/dashboard'
@@ -443,13 +513,20 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/workforce'
     | '/auth/callback'
+    | '/owner/activity'
+    | '/owner/alerts'
+    | '/owner/camera'
     | '/owner/companies'
+    | '/owner/create-manager'
     | '/owner/dashboard'
+    | '/owner/iot'
     | '/owner/issues'
     | '/owner/login'
+    | '/owner/reports'
     | '/owner/revenue'
     | '/owner/settings'
     | '/owner/subscriptions'
+    | '/owner/users'
     | '/user/alerts'
     | '/user/breaks'
     | '/user/dashboard'
@@ -486,13 +563,20 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/workforce'
     | '/auth/callback'
+    | '/owner/activity'
+    | '/owner/alerts'
+    | '/owner/camera'
     | '/owner/companies'
+    | '/owner/create-manager'
     | '/owner/dashboard'
+    | '/owner/iot'
     | '/owner/issues'
     | '/owner/login'
+    | '/owner/reports'
     | '/owner/revenue'
     | '/owner/settings'
     | '/owner/subscriptions'
+    | '/owner/users'
     | '/user/alerts'
     | '/user/breaks'
     | '/user/dashboard'
@@ -664,6 +748,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UserAlertsRouteImport
       parentRoute: typeof UserRoute
     }
+    '/owner/users': {
+      id: '/owner/users'
+      path: '/users'
+      fullPath: '/owner/users'
+      preLoaderRoute: typeof OwnerUsersRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/owner/subscriptions': {
       id: '/owner/subscriptions'
       path: '/subscriptions'
@@ -685,6 +776,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerRevenueRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/owner/reports': {
+      id: '/owner/reports'
+      path: '/reports'
+      fullPath: '/owner/reports'
+      preLoaderRoute: typeof OwnerReportsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/owner/login': {
       id: '/owner/login'
       path: '/login'
@@ -699,6 +797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerIssuesRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/owner/iot': {
+      id: '/owner/iot'
+      path: '/iot'
+      fullPath: '/owner/iot'
+      preLoaderRoute: typeof OwnerIotRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/owner/dashboard': {
       id: '/owner/dashboard'
       path: '/dashboard'
@@ -706,11 +811,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerDashboardRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/owner/create-manager': {
+      id: '/owner/create-manager'
+      path: '/create-manager'
+      fullPath: '/owner/create-manager'
+      preLoaderRoute: typeof OwnerCreateManagerRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/owner/companies': {
       id: '/owner/companies'
       path: '/companies'
       fullPath: '/owner/companies'
       preLoaderRoute: typeof OwnerCompaniesRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/camera': {
+      id: '/owner/camera'
+      path: '/camera'
+      fullPath: '/owner/camera'
+      preLoaderRoute: typeof OwnerCameraRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/alerts': {
+      id: '/owner/alerts'
+      path: '/alerts'
+      fullPath: '/owner/alerts'
+      preLoaderRoute: typeof OwnerAlertsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/activity': {
+      id: '/owner/activity'
+      path: '/activity'
+      fullPath: '/owner/activity'
+      preLoaderRoute: typeof OwnerActivityRouteImport
       parentRoute: typeof OwnerRoute
     }
     '/auth/callback': {
@@ -859,25 +992,39 @@ const OwnerCompaniesRouteWithChildren = OwnerCompaniesRoute._addFileChildren(
 )
 
 interface OwnerRouteChildren {
+  OwnerActivityRoute: typeof OwnerActivityRoute
+  OwnerAlertsRoute: typeof OwnerAlertsRoute
+  OwnerCameraRoute: typeof OwnerCameraRoute
   OwnerCompaniesRoute: typeof OwnerCompaniesRouteWithChildren
+  OwnerCreateManagerRoute: typeof OwnerCreateManagerRoute
   OwnerDashboardRoute: typeof OwnerDashboardRoute
+  OwnerIotRoute: typeof OwnerIotRoute
   OwnerIssuesRoute: typeof OwnerIssuesRoute
   OwnerLoginRoute: typeof OwnerLoginRoute
+  OwnerReportsRoute: typeof OwnerReportsRoute
   OwnerRevenueRoute: typeof OwnerRevenueRoute
   OwnerSettingsRoute: typeof OwnerSettingsRoute
   OwnerSubscriptionsRoute: typeof OwnerSubscriptionsRoute
+  OwnerUsersRoute: typeof OwnerUsersRoute
   OwnerIndexRoute: typeof OwnerIndexRoute
   OwnerCompanyIdRoute: typeof OwnerCompanyIdRoute
 }
 
 const OwnerRouteChildren: OwnerRouteChildren = {
+  OwnerActivityRoute: OwnerActivityRoute,
+  OwnerAlertsRoute: OwnerAlertsRoute,
+  OwnerCameraRoute: OwnerCameraRoute,
   OwnerCompaniesRoute: OwnerCompaniesRouteWithChildren,
+  OwnerCreateManagerRoute: OwnerCreateManagerRoute,
   OwnerDashboardRoute: OwnerDashboardRoute,
+  OwnerIotRoute: OwnerIotRoute,
   OwnerIssuesRoute: OwnerIssuesRoute,
   OwnerLoginRoute: OwnerLoginRoute,
+  OwnerReportsRoute: OwnerReportsRoute,
   OwnerRevenueRoute: OwnerRevenueRoute,
   OwnerSettingsRoute: OwnerSettingsRoute,
   OwnerSubscriptionsRoute: OwnerSubscriptionsRoute,
+  OwnerUsersRoute: OwnerUsersRoute,
   OwnerIndexRoute: OwnerIndexRoute,
   OwnerCompanyIdRoute: OwnerCompanyIdRoute,
 }

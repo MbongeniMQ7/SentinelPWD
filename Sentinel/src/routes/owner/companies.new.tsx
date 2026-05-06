@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/owner/AppShell";
 import { TopBar } from "@/components/owner/TopBar";
-import { Watch, HeartPulse, Eye, ShieldCheck, Zap } from "lucide-react";
-
+import { Watch, HeartPulse, Eye, ShieldCheck, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { z } from "zod";
 import { toast } from "sonner";
 
@@ -19,16 +19,93 @@ const AddCompany = () => {
   const nav = useNavigate();
   const [mode, setMode] = useState<"iot" | "biometric">("iot");
   const [showPwd, setShowPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ org: "", name: "", email: "", password: "" });
 
-  const submit = () => {
+  const submit = async () => {
     const result = schema.safeParse({ ...form, mode });
     if (!result.success) {
       toast.error(result.error.issues[0].message);
       return;
     }
-    toast.success("Admin account created — invitation sent.");
-    nav({ to: "/owner/companies" });
+    setLoading(true);
+    try {
+      // 1. Insert company
+      const { data: company, error: compErr } = await supabase
+        .from("companies")
+        .insert({
+          company_name: form.org,
+          status: "ACTIVE",
+          monitoring_type: mode === "iot" ? "IOT" : "CAMERA",
+        })
+        .select("company_id")
+        .single();
+      if (compErr || !company) {
+        toast.error(compErr?.message ?? "Failed to create company.");
+        return;
+      }
+
+      // 2. Create auth user
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: { data: { role: "MANAGER", full_name: form.name } },
+      });
+      if (signUpErr || !signUpData.user) {
+        toast.error(signUpErr?.message ?? "Failed to create admin auth account.");
+        return;
+      }
+
+      // 3. Build username from org name
+      const nameParts = form.name.trim().split(" ");
+      const firstName = nameParts[0] ?? form.name;
+      const lastName = nameParts.slice(1).join(" ") || "";
+      const baseUsername = form.org.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      const username = `${baseUsername}-admin`;
+
+      // 4. Insert profile
+      const { error: profileErr } = await supabase.from("profiles").insert({
+        auth_user_id: signUpData.user.id,
+        company_id: company.company_id,
+        username,
+        first_name: firstName,
+        last_name: lastName,
+        email: form.email,
+        role: "MANAGER",
+        status: "ACTIVE",
+      });
+      if (profileErr) {
+        toast.error("Company created, but profile failed: " + profileErr.message);
+        return;
+      }
+
+      // 5. Insert manager_profiles
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("profile_id")
+        .eq("auth_user_id", signUpData.user.id)
+        .single();
+      if (profileRow) {
+        await supabase.from("manager_profiles").insert({
+          profile_id: profileRow.profile_id,
+          manager_level: "MANAGER",
+          access_scope: "COMPANY_WIDE",
+          can_create_employees: true,
+          can_create_managers: false,
+        });
+      }
+
+      // 6. Audit log
+      await supabase.from("audit_logs").insert({
+        action_type: "COMPANY_CREATED",
+        description: `Company "${form.org}" created with admin @${username}`,
+      });
+
+      toast.success(`"${form.org}" created — admin account provisioned.`);
+      nav({ to: "/owner/companies" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const Field = ({ k, placeholder, type = "text" }: { k: keyof typeof form; placeholder: string; type?: string }) => (
@@ -110,8 +187,13 @@ const AddCompany = () => {
 
           <div className="pt-2">
             <p className="text-sm text-muted-foreground text-center">By creating this account, the admin will receive a secure invitation link via email.</p>
-            <button onClick={submit} className="w-full mt-4 bg-card-muted text-primary font-bold tracking-wider py-4 rounded-xl shadow-soft">
-              CREATE ACCOUNT
+            <button
+              onClick={submit}
+              disabled={loading}
+              className="w-full mt-4 bg-card-muted text-primary font-bold tracking-wider py-4 rounded-xl shadow-soft flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {loading && <Loader2 className="h-5 w-5 animate-spin" />}
+              {loading ? "Creating…" : "CREATE ACCOUNT"}
             </button>
           </div>
         </div>
