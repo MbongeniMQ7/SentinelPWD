@@ -9,7 +9,7 @@ import { useFatigueMonitor } from "@/hooks/useFatigueMonitor";
 import { fatigueAlertBus } from "@/lib/fatigue/alertBus";
 import { riskLabel } from "@/lib/fatigue/riskScore";
 import { saveSession, saveSessionToDb } from "@/lib/fatigue/sessionStore";
-import { Square, BarChart3 } from "lucide-react";
+import { Square, BarChart3, Brain, Zap, Activity, ShieldAlert, HeartCrack } from "lucide-react";
 
 export const Route = createFileRoute("/user/monitoring")({
   component: Monitoring,
@@ -31,6 +31,8 @@ function Monitoring() {
     eyePositions,
     eyeState,
     eyeOpenness,
+    headPose,
+    fearScore: rawFearScore,
     error,
     startCamera,
     stopCamera,
@@ -80,8 +82,11 @@ function Monitoring() {
       t: performance.now(),
       eyesClosed: eyeState === "closed",
       focus: avgOpen,
+      headYaw:   headPose?.yaw,
+      headPitch: headPose?.pitch,
+      fearScore: rawFearScore ?? undefined,
     });
-  }, [faceDetected, eyeState, eyeOpenness.left, eyeOpenness.right, fatigue]);
+  }, [faceDetected, eyeState, eyeOpenness.left, eyeOpenness.right, headPose, rawFearScore, fatigue]);
 
   // Surface worker alerts as on-screen toasts (Moderate+ level).
   useEffect(() => {
@@ -250,6 +255,52 @@ function Monitoring() {
                 />
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Real-time scores grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="panel p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <Activity className="h-4 w-4 text-warning-foreground" />
+              <span className="text-[10px] font-bold tracking-widest text-muted-foreground">FATIGUE</span>
+            </div>
+            <div className="font-display text-3xl font-bold">{fatigue.score}<span className="text-sm text-muted-foreground">/100</span></div>
+          </div>
+          <div className="panel p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <Zap className="h-4 w-4 text-danger" />
+              <span className="text-[10px] font-bold tracking-widest text-muted-foreground">STRESS</span>
+            </div>
+            <div className="font-display text-3xl font-bold">
+              {Math.min(100, Math.round(
+                (fatigue.blinkRate > 20 ? Math.min(100, Math.round(((fatigue.blinkRate - 20) / 25) * 100)) : 0) * 0.6 +
+                (1 - Math.min(1, Math.max(0, fatigue.focus))) * 100 * 0.4
+              ))}<span className="text-sm text-muted-foreground">/100</span>
+            </div>
+          </div>
+          <div className="panel p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <Brain className="h-4 w-4 text-gold-foreground" />
+              <span className="text-[10px] font-bold tracking-widest text-muted-foreground">FOCUS</span>
+            </div>
+            <div className="font-display text-3xl font-bold">{Math.round(fatigue.focus * 100)}<span className="text-sm text-muted-foreground">%</span></div>
+          </div>
+          <div className="panel p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <ShieldAlert className="h-4 w-4 text-navy" />
+              <span className="text-[10px] font-bold tracking-widest text-muted-foreground">RISK</span>
+            </div>
+            <div className={`font-display text-lg font-bold mt-1 ${
+              fatigue.level === 'high' ? 'text-danger' : fatigue.level === 'moderate' ? 'text-warning-foreground' : 'text-success'
+            }`}>{riskLabel(fatigue.level)}</div>
+          </div>
+          <div className="col-span-2 panel p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-1.5">
+              <HeartCrack className="h-4 w-4 text-danger" />
+              <span className="text-[10px] font-bold tracking-widest text-muted-foreground">FEAR / DISTRESS</span>
+            </div>
+            <div className="font-display text-3xl font-bold">{fatigue.fearScore}<span className="text-sm text-muted-foreground">/100</span></div>
           </div>
         </div>
 

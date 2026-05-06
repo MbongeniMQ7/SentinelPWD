@@ -15,6 +15,8 @@ import {
   Minus,
   Clock,
   XCircle,
+  Zap,
+  HeartCrack,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
@@ -184,6 +186,8 @@ function WorkerDashboard() {
   const blinkRate = live?.blinkRate ?? lastSession?.blinkRate ?? latestDbSession?.blink_rate ?? DEMO.blinkRate;
   const eyeClosure = live?.eyeClosure ?? lastSession?.eyeClosure ?? latestDbSession?.eye_closure ?? DEMO.eyeClosure;
   const focus = live?.focus ?? lastSession?.focus ?? latestDbSession?.focus ?? DEMO.focus;
+  // Fear score is only meaningful during a live session (requires camera blendshapes).
+  const fearScore = live?.fearScore ?? 0;
 
   // Trend: prefer live, then sessionStorage, then build from DB history scores (oldest→newest), then DEMO
   const dbTrend = history.length > 0 ? [...history].reverse().map((s) => s.score) : [];
@@ -220,6 +224,13 @@ function WorkerDashboard() {
     Math.round((Math.max(0, eyeClosure - 0.05) / 0.45) * 100),
   );
   const focusScorePct = Math.round((1 - Math.min(1, Math.max(0, focus))) * 100);
+
+  // Stress score: elevated blink rate (>20 bpm = stress/anxiety) weighted 60%,
+  // low focus weighted 40%. Range 0–100.
+  const blinkExcessPct = blinkRate > 20
+    ? Math.min(100, Math.round(((blinkRate - 20) / 25) * 100))
+    : 0;
+  const stressScore = Math.min(100, Math.round(blinkExcessPct * 0.6 + focusScorePct * 0.4));
 
   return (
     <div className="app-shell flex flex-col">
@@ -376,6 +387,20 @@ function WorkerDashboard() {
               value={`${Math.round(focus * 100)}%`}
               scorePct={focusScorePct}
               good={focus > 0.7}
+            />
+            <SubMetric
+              icon={<Zap className="h-4 w-4 text-danger" />}
+              label="Stress Level"
+              value={`${stressScore}/100`}
+              scorePct={stressScore}
+              good={stressScore < 40}
+            />
+            <SubMetric
+              icon={<HeartCrack className="h-4 w-4 text-danger" />}
+              label="Fear / Distress"
+              value={fearScore > 0 ? `${fearScore}/100` : isLive ? "Monitoring…" : "N/A"}
+              scorePct={fearScore}
+              good={fearScore < 30}
             />
           </div>
         </div>

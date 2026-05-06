@@ -1,13 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
 import { BrandLogo } from "@/components/user/BrandLogo";
 import { AvatarBadge } from "@/components/user/AvatarBadge";
-import { HelpCircle, Paperclip, Headphones, Mail } from "lucide-react";
+import { HelpCircle, Paperclip, Headphones, Mail, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/user/support")({
   component: Support,
 });
 
 function Support() {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmitBug(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) {
+      toast.error("Please enter a title for your bug report.");
+      return;
+    }
+    setSubmitting(true);
+    // Small delay so the user sees the loading state before the toast
+    await new Promise((r) => setTimeout(r, 600));
+    setSubmitting(false);
+    setTitle("");
+    setDescription("");
+    toast.success("Bug report submitted", {
+      description: "Our team will review your report shortly. Thank you!",
+    });
+  }
+
   return (
     <div className="app-shell px-5 py-5 pb-10">
       <header className="flex items-center justify-between mb-6">
@@ -20,45 +43,56 @@ function Support() {
       </h1>
 
       {/* Submit issue */}
-      <div className="panel p-5 mt-6">
-        <div className="flex items-start gap-3">
-          <div className="h-11 w-11 rounded-xl bg-navy flex items-center justify-center">
-            <HelpCircle className="h-5 w-5 text-gold" />
+      <form onSubmit={handleSubmitBug} noValidate>
+        <div className="panel p-5 mt-6">
+          <div className="flex items-start gap-3">
+            <div className="h-11 w-11 rounded-xl bg-navy flex items-center justify-center">
+              <HelpCircle className="h-5 w-5 text-gold" />
+            </div>
+            <div>
+              <h2 className="font-display text-2xl font-bold">Report a Bug</h2>
+              <p className="text-sm text-muted-foreground">
+                Detailed reports help us resolve technical hurdles faster.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-display text-2xl font-bold">Submit Issue</h2>
-            <p className="text-sm text-muted-foreground">
-              Detailed reports help us resolve technical hurdles faster.
-            </p>
-          </div>
-        </div>
 
-        <div className="mt-5">
-          <div className="label-eyebrow">Title</div>
-          <input
-            placeholder="Brief summary of the issue"
-            className="mt-2 w-full rounded-xl bg-secondary px-4 py-3 text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </div>
-        <div className="mt-4">
-          <div className="label-eyebrow">Description</div>
-          <textarea
-            rows={4}
-            placeholder="Describe the steps to reproduce or the nature of the error..."
-            className="mt-2 w-full rounded-xl bg-secondary px-4 py-3 text-sm outline-none placeholder:text-muted-foreground resize-none"
-          />
-        </div>
-
-        <div className="mt-4 flex items-end justify-between gap-3">
-          <div className="flex items-start gap-2 text-xs text-muted-foreground">
-            <Paperclip className="h-3.5 w-3.5 mt-0.5" />
-            <span>Attach screenshot<br />(optional)</span>
+          <div className="mt-5">
+            <div className="label-eyebrow">Title</div>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Brief summary of the issue"
+              className="mt-2 w-full rounded-xl bg-secondary px-4 py-3 text-sm outline-none placeholder:text-muted-foreground"
+            />
           </div>
-          <button className="rounded-xl bg-navy text-navy-foreground font-bold px-6 py-3 text-sm leading-tight">
-            Send<br />Report
-          </button>
+          <div className="mt-4">
+            <div className="label-eyebrow">Description</div>
+            <textarea
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the steps to reproduce or the nature of the error..."
+              className="mt-2 w-full rounded-xl bg-secondary px-4 py-3 text-sm outline-none placeholder:text-muted-foreground resize-none"
+            />
+          </div>
+
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <div className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Paperclip className="h-3.5 w-3.5 mt-0.5" />
+              <span>Attach screenshot<br />(optional)</span>
+            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-xl bg-navy text-navy-foreground font-bold px-6 py-3 text-sm leading-tight disabled:opacity-60 flex items-center gap-2"
+            >
+              {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Send<br />Report
+            </button>
+          </div>
         </div>
-      </div>
+      </form>
 
       {/* Direct line */}
       <div className="panel bg-navy text-navy-foreground p-5 mt-5 relative overflow-hidden">

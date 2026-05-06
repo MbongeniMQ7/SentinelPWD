@@ -45,6 +45,14 @@ export interface EyePositions {
   right: Point | null;
 }
 
+/** Head pose angles in degrees derived from face mesh landmarks. */
+export interface HeadPose {
+  /** Yaw: positive = turned right (away from camera left). Approx ±45°. */
+  yaw: number;
+  /** Pitch: positive = looking down. Approx ±30°. */
+  pitch: number;
+}
+
 export interface FaceDetectionState {
   cameraStatus: CameraStatus;
   faceDetected: boolean;
@@ -53,6 +61,18 @@ export interface FaceDetectionState {
   eyeState: EyeState;
   /** Per-eye open probability in [0..1] (1 = fully open). null until first reading. */
   eyeOpenness: { left: number | null; right: number | null };
+  /**
+   * Head orientation estimated from facial landmarks.
+   * Used for focus tracking — large yaw/pitch indicates the employee is
+   * looking away from the screen/task.
+   */
+  headPose: HeadPose | null;
+  /**
+   * Fear/distress score in [0..1] derived from blendshape amplitudes:
+   * wide eyes (eyeWideLeft/Right), raised inner brows (browInnerUp), jaw drop (jawOpen).
+   * Heuristic MVP — can be replaced by a trained expression classifier.
+   */
+  fearScore: number | null;
   fps: number;
   error: string | null;
 }
@@ -183,6 +203,8 @@ export function useFaceDetection(
     eyePositions: { left: null, right: null },
     eyeState: "unknown",
     eyeOpenness: { left: null, right: null },
+    headPose: null,
+    fearScore: null,
     fps: 0,
     error: null,
   });
@@ -320,6 +342,8 @@ export function useFaceDetection(
                 eyePositions: { left: null, right: null },
                 eyeState: "unknown",
                 eyeOpenness: { left: null, right: null },
+                headPose: null,
+                fearScore: null,
               }
             : s,
         );
@@ -362,6 +386,49 @@ export function useFaceDetection(
             : "open";
       }
 
+      // --- Head pose from landmark geometry (no transformation matrix needed) ---
+      // Uses the face oval + nose tip to approximate yaw (left-right) and
+      // pitch (up-down). Structured so a trained pose model can replace this
+      // block later by overriding `headPose` from `outputFacialTransformationMatrixes`.
+      let headPose: HeadPose | null = null;
+      if (landmarks.length > 454) {
+        const noseTip    = landmarks[4];
+        const leftCheek  = landmarks[234];
+        const rightCheek = landmarks[454];
+        const forehead   = landmarks[10];
+        const chin       = landmarks[152];
+        const leftInner  = landmarks[133];
+        const rightInner = landmarks[362];
+        if (noseTip && leftCheek && rightCheek && forehead && chin && leftInner && rightInner) {
+          const faceWidth  = Math.max(0.001, rightCheek.x - leftCheek.x);
+          const faceHeight = Math.max(0.001, chin.y - forehead.y);
+          const faceMidX   = (leftCheek.x + rightCheek.x) / 2;
+          const eyeMidY    = (leftInner.y + rightInner.y) / 2;
+          // Scale to approximate degree range (±45° yaw, ±30° pitch).
+          const yaw   = ((noseTip.x - faceMidX) / (faceWidth  / 2)) * 45;
+          const pitch = ((noseTip.y - eyeMidY)  / (faceHeight * 0.5)) * 30;
+          headPose = { yaw, pitch };
+        }
+      }
+
+      // --- Fear / distress score from blendshapes ---
+      // Heuristic MVP combining four expression channels associated with fear:
+      //   eyeWideLeft + eyeWideRight  : wide-open eyes (surprise/fear)
+      //   browInnerUp                 : raised inner brows (worry/fear)
+      //   jawOpen                     : open mouth (shock/fear)
+      // Weighted sum normalised to [0..1]. A trained classifier can replace
+      // this computation later without changing the downstream interface.
+      let fearScore: number | null = null;
+      if (blendshapes && blendshapes.length) {
+        const get = (name: string) =>
+          blendshapes.find((c) => c.categoryName === name)?.score ?? 0;
+        const eyeWideL = get("eyeWideLeft");
+        const eyeWideR = get("eyeWideRight");
+        const browUp   = get("browInnerUp");
+        const jawOpen  = get("jawOpen");
+        fearScore = Math.min(1, eyeWideL * 0.3 + eyeWideR * 0.3 + browUp * 0.25 + jawOpen * 0.15);
+      }
+
       setState((s) => ({
         ...s,
         faceDetected: true,
@@ -369,6 +436,8 @@ export function useFaceDetection(
         eyePositions: { left, right },
         eyeState,
         eyeOpenness: { left: leftOpen, right: rightOpen },
+        headPose,
+        fearScore,
       }));
     };
 
