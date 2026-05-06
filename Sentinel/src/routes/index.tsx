@@ -36,14 +36,14 @@ function Welcome() {
             alt=""
             aria-hidden="true"
             className="w-full h-full object-cover object-center scale-105"
-            style={{ filter: "blur(2px)" }}
+            style={{ filter: "blur(3px)", opacity: 0.18 }}
           />
-          {/* Dark gradient overlay so text stays readable */}
+          {/* Strong overlay so background stays subtle */}
           <div
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(120deg, hsl(var(--background)/0.97) 0%, hsl(var(--background)/0.88) 45%, hsl(var(--background)/0.55) 100%)",
+                "linear-gradient(120deg, hsl(var(--background)/1) 0%, hsl(var(--background)/0.97) 50%, hsl(var(--background)/0.92) 100%)",
             }}
           />
         </div>
@@ -67,7 +67,7 @@ function Welcome() {
                 SentinelAI
               </span>
             </h1>
-            <p className="mt-6 text-lg lg:text-xl leading-relaxed text-muted-foreground max-w-xl">
+            <p className="mt-6 text-lg lg:text-xl leading-relaxed text-foreground/80 max-w-xl font-medium">
               Your silent guardian in the workspace. We utilize high-precision IoT
               monitoring to analyze fatigue patterns and ensure every team member
               returns home safely.
@@ -90,7 +90,7 @@ function Welcome() {
                 to="/choose-role"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-card/70 backdrop-blur hover:bg-muted transition px-8 py-4 font-semibold text-foreground"
               >
-                Choose your role
+                Explore
               </Link>
             </div>
           </div>
