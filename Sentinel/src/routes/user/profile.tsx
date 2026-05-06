@@ -18,8 +18,10 @@ function Profile() {
   const { profile, loading } = useProfile();
   const [push, setPush] = useState(true);
 
-  const displayName = profile?.full_name ?? user?.user_metadata?.full_name ?? "—";
-  const jobTitle = profile?.job_title ?? profile?.department ?? "Sentinel User";
+  const displayName = profile
+    ? `${profile.first_name} ${profile.last_name}`.trim()
+    : user?.email ?? "—";
+  const jobTitle = (profile as any)?.employee_profiles?.job_title ?? (profile as any)?.employee_profiles?.department ?? "Sentinel Employee";
   const [avatarError, setAvatarError] = useState(false);
   const initials = displayName
     .split(" ")

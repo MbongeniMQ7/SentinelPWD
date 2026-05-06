@@ -136,26 +136,42 @@ export interface DbAlert {
 }
 
 /**
- * Persist a fired alert to Supabase fatigue_alerts table.
+ * Persist a fired alert to Supabase risk_alerts table.
  * Fire-and-forget — errors are swallowed so monitoring is never blocked.
  */
 export async function saveAlertToDb(alert: LoggedAlert): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase.from("fatigue_alerts").insert({
-    user_id: user.id,
-    kind: alert.kind,
-    level: alert.level,
-    score: alert.score,
-    message: alert.message,
-    acknowledged: false,
-    fired_at: new Date(alert.timestamp).toISOString(),
+  // Fetch the profile to get profile_id and company_id
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("profile_id, company_id")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile?.profile_id || !profile?.company_id) return;
+
+  const alertType = alert.level === "high" ? "HIGH_RISK" : "FATIGUE_WARNING";
+  const riskLevel = alert.level === "high" ? "HIGH" : "MODERATE";
+
+  await supabase.from("risk_alerts").insert({
+    employee_profile_id: profile.profile_id,
+    company_id: profile.company_id,
+    alert_type: alertType,
+    risk_level: riskLevel,
+    alert_message: alert.message,
+    fatigue_score: alert.score,
+    is_seen_by_employee: false,
+    is_seen_by_manager: false,
   });
 }
 
 /**
  * Load the user's alert history from Supabase, newest first.
+ */
+/**
+ * Load the user's alert history from Supabase risk_alerts, newest first.
  */
 export async function loadAlertsFromDb(
   limit = 50
@@ -163,20 +179,39 @@ export async function loadAlertsFromDb(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { alerts: [], error: "Not authenticated" };
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("profile_id")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile?.profile_id) return { alerts: [], error: null };
+
   const { data, error } = await supabase
-    .from("fatigue_alerts")
-    .select("id, kind, level, score, message, acknowledged, fired_at")
-    .eq("user_id", user.id)
-    .order("fired_at", { ascending: false })
+    .from("risk_alerts")
+    .select("alert_id, alert_type, risk_level, alert_message, fatigue_score, is_seen_by_employee, created_at")
+    .eq("employee_profile_id", profile.profile_id)
+    .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) return { alerts: [], error: error.message };
-  return { alerts: (data ?? []) as DbAlert[], error: null };
+
+  const alerts: DbAlert[] = (data ?? []).map((row: any) => ({
+    id: row.alert_id,
+    kind: "worker" as AlertKind,
+    level: row.risk_level === "HIGH" ? "high" : "moderate",
+    score: row.fatigue_score ?? 0,
+    message: row.alert_message,
+    acknowledged: row.is_seen_by_employee,
+    fired_at: row.created_at,
+  }));
+
+  return { alerts, error: null };
 }
 
 /**
- * Admin/owner view: load alerts for ALL users (relies on the
- * "Admins and owners can read all alerts" RLS policy on fatigue_alerts).
+ * Manager/owner view: load alerts for ALL employees from risk_alerts.
+ * Relies on RLS policy allowing MANAGER and OWNER to read all company alerts.
  * Joins profiles to include the worker's display name.
  */
 export interface AdminDbAlert extends DbAlert {
@@ -188,34 +223,36 @@ export async function loadAllAlertsFromDb(
   limit = 100
 ): Promise<{ alerts: AdminDbAlert[]; error: string | null }> {
   const { data, error } = await supabase
-    .from("fatigue_alerts")
-    .select("id, kind, level, score, message, acknowledged, fired_at, user_id, profiles(full_name)")
-    .order("fired_at", { ascending: false })
+    .from("risk_alerts")
+    .select("alert_id, alert_type, risk_level, alert_message, fatigue_score, is_seen_by_manager, created_at, employee_profile_id, profiles(first_name, last_name)")
+    .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) return { alerts: [], error: error.message };
 
   const alerts: AdminDbAlert[] = (data ?? []).map((row: any) => ({
-    id: row.id,
-    kind: row.kind,
-    level: row.level,
-    score: row.score,
-    message: row.message,
-    acknowledged: row.acknowledged,
-    fired_at: row.fired_at,
-    worker_id: row.user_id,
-    worker_name: row.profiles?.full_name ?? null,
+    id: row.alert_id,
+    kind: "worker" as AlertKind,
+    level: row.risk_level === "HIGH" ? "high" : "moderate",
+    score: row.fatigue_score ?? 0,
+    message: row.alert_message,
+    acknowledged: row.is_seen_by_manager,
+    fired_at: row.created_at,
+    worker_id: row.employee_profile_id,
+    worker_name: row.profiles
+      ? `${row.profiles.first_name} ${row.profiles.last_name}`.trim()
+      : null,
   }));
 
   return { alerts, error: null };
 }
 
 /**
- * Mark an alert as acknowledged in Supabase.
+ * Mark an alert as acknowledged in Supabase (sets is_seen_by_manager = true).
  */
 export async function acknowledgeAlertInDb(id: string): Promise<void> {
   await supabase
-    .from("fatigue_alerts")
-    .update({ acknowledged: true })
-    .eq("id", id);
+    .from("risk_alerts")
+    .update({ is_seen_by_manager: true })
+    .eq("alert_id", id);
 }

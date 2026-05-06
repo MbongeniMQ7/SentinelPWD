@@ -12,9 +12,9 @@ export const Route = createFileRoute("/choose-role")({
 });
 
 const roleRedirects: Record<AppRole, string> = {
-  user: "/user/home",
-  admin: "/admin/dashboard",
-  owner: "/owner/dashboard",
+  EMPLOYEE: "/user/home",
+  MANAGER: "/admin/dashboard",
+  OWNER: "/owner/dashboard",
 };
 
 function LoginPage() {

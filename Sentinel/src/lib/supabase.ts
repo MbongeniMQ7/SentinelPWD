@@ -16,4 +16,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-export type AppRole = "user" | "admin" | "owner";
+/** Matches the user_role enum in the database */
+export type AppRole = "OWNER" | "MANAGER" | "EMPLOYEE";
+
+/** Maps DB role to the front-end route prefix */
+export const roleRouteMap: Record<AppRole, string> = {
+  EMPLOYEE: "/user/home",
+  MANAGER: "/admin/dashboard",
+  OWNER: "/owner/dashboard",
+};

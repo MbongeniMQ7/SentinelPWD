@@ -67,8 +67,9 @@ export interface DbSession {
 }
 
 /**
- * Persist the snapshot to Supabase fatigue_sessions table.
- * Call this after saveSession() when the monitoring session ends.
+ * Persist the snapshot to Supabase using the new schema:
+ * - Creates a camera_analysis_sessions record (started+stopped)
+ * - Inserts one biometric_readings row with the summary metrics
  */
 export async function saveSessionToDb(
   snap: Omit<SessionSnapshot, "terminatedAt"> & { terminatedAt?: string }
@@ -76,26 +77,53 @@ export async function saveSessionToDb(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const terminatedAt = snap.terminatedAt ?? new Date().toISOString();
+  // Resolve profile_id and company_id
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("profile_id, company_id")
+    .eq("auth_user_id", user.id)
+    .single();
 
-  const { error } = await supabase.from("fatigue_sessions").insert({
-    user_id: user.id,
-    score: snap.score,
-    level: snap.level,
+  if (!profile?.profile_id || !profile?.company_id) {
+    return { error: "Profile not found" };
+  }
+
+  const terminatedAt = snap.terminatedAt ?? new Date().toISOString();
+  const riskLevel = snap.level.toUpperCase() as "LOW" | "MODERATE" | "HIGH";
+
+  // 1. Create the session record
+  const { data: session, error: sessionError } = await supabase
+    .from("camera_analysis_sessions")
+    .insert({
+      employee_profile_id: profile.profile_id,
+      company_id: profile.company_id,
+      started_at: new Date(Date.now() - snap.durationSeconds * 1000).toISOString(),
+      stopped_at: terminatedAt,
+      status: "STOPPED",
+    })
+    .select("session_id")
+    .single();
+
+  if (sessionError) return { error: sessionError.message };
+
+  // 2. Insert one summary biometric reading
+  const { error: readingError } = await supabase.from("biometric_readings").insert({
+    session_id: session.session_id,
+    employee_profile_id: profile.profile_id,
+    captured_at: terminatedAt,
     blink_rate: snap.blinkRate,
-    eye_closure: snap.eyeClosure,
-    focus: snap.focus,
-    duration_seconds: snap.durationSeconds,
-    trend: snap.trend,
-    terminated_at: terminatedAt,
+    focus_score: snap.focus,
+    fatigue_score: snap.score,
+    overall_risk_score: snap.score,
+    risk_level: riskLevel,
   });
 
-  return { error: error ? error.message : null };
+  return { error: readingError ? readingError.message : null };
 }
 
 /**
- * Load the most recent N sessions for the current user from Supabase.
- * Returns sessions ordered newest-first.
+ * Load the most recent N biometric readings for the current user from Supabase.
+ * Returns readings ordered newest-first.
  */
 export async function loadSessionHistory(
   limit = 20
@@ -103,13 +131,34 @@ export async function loadSessionHistory(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { sessions: [], error: "Not authenticated" };
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("profile_id")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profile?.profile_id) return { sessions: [], error: null };
+
   const { data, error } = await supabase
-    .from("fatigue_sessions")
-    .select("id, score, level, blink_rate, eye_closure, focus, duration_seconds, trend, terminated_at")
-    .eq("user_id", user.id)
-    .order("terminated_at", { ascending: false })
+    .from("biometric_readings")
+    .select("reading_id, fatigue_score, risk_level, blink_rate, focus_score, overall_risk_score, captured_at")
+    .eq("employee_profile_id", profile.profile_id)
+    .order("captured_at", { ascending: false })
     .limit(limit);
 
   if (error) return { sessions: [], error: error.message };
-  return { sessions: (data ?? []) as DbSession[], error: null };
+
+  const sessions: DbSession[] = (data ?? []).map((row: any) => ({
+    id: row.reading_id,
+    score: row.fatigue_score ?? 0,
+    level: (row.risk_level?.toLowerCase() ?? "low") as RiskLevel,
+    blink_rate: row.blink_rate ?? 0,
+    eye_closure: 0,
+    focus: row.focus_score ?? 0,
+    duration_seconds: 0,
+    trend: [],
+    terminated_at: row.captured_at,
+  }));
+
+  return { sessions, error: null };
 }

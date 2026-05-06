@@ -1,62 +1,26 @@
 import { supabase } from "@/lib/supabase";
+import type { Profile as DbProfile, UserRole } from "@/lib/database.types";
 
-export interface Profile {
-  id: string;
-  full_name: string | null;
-  phone: string | null;
-  job_title: string | null;
-  department: string | null;
-  company: string | null;
-  role: string | null;
-  avatar_url: string | null;
-  created_at: string;
-  updated_at: string;
-}
+// Re-export the canonical DB type as Profile for backward compat
+export type { DbProfile as Profile };
 
 export type ProfileUpdate = Partial<
-  Pick<Profile, "full_name" | "phone" | "job_title" | "department" | "company" | "avatar_url">
+  Pick<DbProfile, "first_name" | "last_name" | "phone" | "username">
 >;
 
-/**
- * Resolve an avatar_url value to a displayable URL:
- * - If it already starts with http(s), return as-is
- * - If it looks like a storage path (e.g. "uuid/avatar.jpg"), get the public URL
- * - If null/empty, return null
- */
-function resolveAvatarUrl(raw: string | null): string | null {
-  if (!raw) return null;
-  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
-  // Treat as a storage path inside the "avatars" bucket
-  const { data } = supabase.storage.from("avatars").getPublicUrl(raw);
-  return data.publicUrl ?? null;
-}
-
-/** Fetch the current user's profile row. */
-export async function getProfile(): Promise<{ data: Profile | null; error: string | null }> {
+/** Fetch the current user's full profile row from the profiles table. */
+export async function getProfile(): Promise<{ data: DbProfile | null; error: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: "Not authenticated" };
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
-    .eq("id", user.id)
+    .select("*, employee_profiles(*), manager_profiles(*)")
+    .eq("auth_user_id", user.id)
     .single();
 
   if (error) return { data: null, error: error.message };
-
-  const profile = data as Profile;
-
-  // Resolve the avatar URL — prefer the stored value, fall back to OAuth metadata
-  const rawAvatar =
-    profile.avatar_url ||
-    (user.user_metadata?.avatar_url as string | undefined) ||
-    (user.user_metadata?.picture as string | undefined) ||
-    null;
-
-  return {
-    data: { ...profile, avatar_url: resolveAvatarUrl(rawAvatar) },
-    error: null,
-  };
+  return { data: data as DbProfile, error: null };
 }
 
 /** Update the current user's profile row. */
@@ -67,14 +31,13 @@ export async function updateProfile(updates: ProfileUpdate): Promise<{ error: st
   const { error } = await supabase
     .from("profiles")
     .update(updates)
-    .eq("id", user.id);
+    .eq("auth_user_id", user.id);
 
   return { error: error ? error.message : null };
 }
 
 /**
  * Upload a profile avatar to Supabase Storage (bucket: "avatars").
- * Overwrites any existing avatar for the user and saves the URL to the profile row.
  * Returns the public URL on success.
  */
 export async function uploadAvatar(
@@ -92,12 +55,9 @@ export async function uploadAvatar(
 
   if (uploadError) return { url: null, error: uploadError.message };
 
-  // Add a cache-busting timestamp so the browser always loads the new image
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-  const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
-
-  // Persist the URL back to the profile row
-  const { error: updateError } = await supabase
+  return { url: `${data.publicUrl}?t=${Date.now()}`, error: null };
+}
     .from("profiles")
     .update({ avatar_url: publicUrl })
     .eq("id", user.id);

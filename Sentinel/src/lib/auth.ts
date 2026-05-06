@@ -1,4 +1,5 @@
 import { supabase, type AppRole } from "@/lib/supabase";
+import type { Profile } from "@/lib/database.types";
 
 export interface SignInResult {
   error: string | null;
@@ -10,59 +11,52 @@ export interface SignUpResult {
 }
 
 /**
- * Sign in with email + password and verify the stored role matches `expectedRole`.
+ * Fetch the profile row for the currently authenticated user.
+ * Returns null if no session or no profile found.
  */
-export async function signIn(
-  email: string,
-  password: string,
-  expectedRole: AppRole
-): Promise<SignInResult> {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+export async function getMyProfile(): Promise<Profile | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return null;
 
-  if (error) {
-    return { error: error.message };
-  }
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("auth_user_id", session.user.id)
+    .single();
 
-  const storedRole: AppRole | undefined = data.user?.user_metadata?.role;
-
-  if (storedRole && storedRole !== expectedRole) {
-    await supabase.auth.signOut();
-    return {
-      error: `This account is registered as "${storedRole}". Please select the correct role.`,
-    };
-  }
-
-  return { error: null };
+  return (data as Profile) ?? null;
 }
 
 /**
- * Create a new account with email, password, role, first name and last name.
- * The full_name is stored in user_metadata so the DB trigger can populate profiles.
+ * Resolve the AppRole for a given auth user id by querying the profiles table.
  */
-export async function signUp(
-  email: string,
-  password: string,
-  role: AppRole,
-  firstName?: string,
-  lastName?: string
-): Promise<SignUpResult> {
-  const fullName = [firstName, lastName].filter(Boolean).join(" ") || undefined;
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { role, full_name: fullName ?? "" },
-    },
-  });
+async function fetchRoleForUser(authUserId: string): Promise<AppRole | null> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("auth_user_id", authUserId)
+    .single();
+  return (data?.role as AppRole) ?? null;
+}
 
-  if (error) {
-    return { error: error.message };
+/**
+ * Sign in without requiring a known role upfront.
+ * Reads role from the profiles table after authentication.
+ */
+export async function signInAny(
+  email: string,
+  password: string
+): Promise<{ error: string | null; role: AppRole | null }> {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { error: error.message, role: null };
+
+  const role = await fetchRoleForUser(data.user.id);
+  if (!role) {
+    await supabase.auth.signOut();
+    return { error: "Account not set up yet. Contact your administrator.", role: null };
   }
 
-  // Supabase returns a session immediately when email confirmations are disabled,
-  // otherwise it returns only a user with no session.
-  const needsEmailConfirmation = !data.session;
-  return { error: null, needsEmailConfirmation };
+  return { error: null, role };
 }
 
 /**
@@ -79,18 +73,4 @@ export async function resetPassword(email: string): Promise<{ error: string | nu
  */
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
-}
-
-/**
- * Sign in without requiring a known role upfront.
- * Returns the detected role so the caller can redirect accordingly.
- */
-export async function signInAny(
-  email: string,
-  password: string
-): Promise<{ error: string | null; role: AppRole | null }> {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: error.message, role: null };
-  const role = (data.user?.user_metadata?.role as AppRole) ?? null;
-  return { error: null, role };
 }
