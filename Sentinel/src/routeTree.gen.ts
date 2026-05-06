@@ -54,6 +54,7 @@ import { Route as AdminDevicesRouteImport } from './routes/admin/devices'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
 import { Route as AdminBillingRouteImport } from './routes/admin/billing'
 import { Route as AdminAlertsRouteImport } from './routes/admin/alerts'
+import { Route as OwnerCompaniesIndexRouteImport } from './routes/owner/companies.index'
 import { Route as OwnerCompanyIdRouteImport } from './routes/owner/company.$id'
 import { Route as OwnerCompaniesNewRouteImport } from './routes/owner/companies.new'
 import { Route as AdminEmployeeIdRouteImport } from './routes/admin/employee.$id'
@@ -283,6 +284,11 @@ const AdminAlertsRoute = AdminAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => AdminRoute,
 } as any)
+const OwnerCompaniesIndexRoute = OwnerCompaniesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OwnerCompaniesRoute,
+} as any)
 const OwnerCompanyIdRoute = OwnerCompanyIdRouteImport.update({
   id: '/company/$id',
   path: '/company/$id',
@@ -348,6 +354,7 @@ export interface FileRoutesByFullPath {
   '/admin/employee/$id': typeof AdminEmployeeIdRoute
   '/owner/companies/new': typeof OwnerCompaniesNewRoute
   '/owner/company/$id': typeof OwnerCompanyIdRoute
+  '/owner/companies/': typeof OwnerCompaniesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -366,7 +373,6 @@ export interface FileRoutesByTo {
   '/owner/activity': typeof OwnerActivityRoute
   '/owner/alerts': typeof OwnerAlertsRoute
   '/owner/camera': typeof OwnerCameraRoute
-  '/owner/companies': typeof OwnerCompaniesRouteWithChildren
   '/owner/create-manager': typeof OwnerCreateManagerRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
   '/owner/iot': typeof OwnerIotRoute
@@ -395,6 +401,7 @@ export interface FileRoutesByTo {
   '/admin/employee/$id': typeof AdminEmployeeIdRoute
   '/owner/companies/new': typeof OwnerCompaniesNewRoute
   '/owner/company/$id': typeof OwnerCompanyIdRoute
+  '/owner/companies': typeof OwnerCompaniesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -446,6 +453,7 @@ export interface FileRoutesById {
   '/admin/employee/$id': typeof AdminEmployeeIdRoute
   '/owner/companies/new': typeof OwnerCompaniesNewRoute
   '/owner/company/$id': typeof OwnerCompanyIdRoute
+  '/owner/companies/': typeof OwnerCompaniesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -498,6 +506,7 @@ export interface FileRouteTypes {
     | '/admin/employee/$id'
     | '/owner/companies/new'
     | '/owner/company/$id'
+    | '/owner/companies/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -516,7 +525,6 @@ export interface FileRouteTypes {
     | '/owner/activity'
     | '/owner/alerts'
     | '/owner/camera'
-    | '/owner/companies'
     | '/owner/create-manager'
     | '/owner/dashboard'
     | '/owner/iot'
@@ -545,6 +553,7 @@ export interface FileRouteTypes {
     | '/admin/employee/$id'
     | '/owner/companies/new'
     | '/owner/company/$id'
+    | '/owner/companies'
   id:
     | '__root__'
     | '/'
@@ -595,6 +604,7 @@ export interface FileRouteTypes {
     | '/admin/employee/$id'
     | '/owner/companies/new'
     | '/owner/company/$id'
+    | '/owner/companies/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -923,6 +933,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAlertsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/owner/companies/': {
+      id: '/owner/companies/'
+      path: '/'
+      fullPath: '/owner/companies/'
+      preLoaderRoute: typeof OwnerCompaniesIndexRouteImport
+      parentRoute: typeof OwnerCompaniesRoute
+    }
     '/owner/company/$id': {
       id: '/owner/company/$id'
       path: '/company/$id'
@@ -981,10 +998,12 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface OwnerCompaniesRouteChildren {
   OwnerCompaniesNewRoute: typeof OwnerCompaniesNewRoute
+  OwnerCompaniesIndexRoute: typeof OwnerCompaniesIndexRoute
 }
 
 const OwnerCompaniesRouteChildren: OwnerCompaniesRouteChildren = {
   OwnerCompaniesNewRoute: OwnerCompaniesNewRoute,
+  OwnerCompaniesIndexRoute: OwnerCompaniesIndexRoute,
 }
 
 const OwnerCompaniesRouteWithChildren = OwnerCompaniesRoute._addFileChildren(
