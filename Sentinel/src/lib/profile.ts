@@ -58,11 +58,3 @@ export async function uploadAvatar(
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
   return { url: `${data.publicUrl}?t=${Date.now()}`, error: null };
 }
-    .from("profiles")
-    .update({ avatar_url: publicUrl })
-    .eq("id", user.id);
-
-  if (updateError) return { url: null, error: updateError.message };
-
-  return { url: publicUrl, error: null };
-}
