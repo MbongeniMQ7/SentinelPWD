@@ -36,7 +36,6 @@ const AddCompany = () => {
         .insert({
           company_name: form.org,
           status: "ACTIVE",
-          monitoring_type: mode === "iot" ? "IOT" : "CAMERA",
         })
         .select("company_id")
         .single();
