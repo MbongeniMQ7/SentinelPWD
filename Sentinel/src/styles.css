@@ -338,42 +338,43 @@ body {
 }
 
 /* =================================================================
- * App viewport shell — full-width website layout
- * (Previously a phone-sized container; now spans the full screen
- *  with a centered max-width on large monitors for readability.)
+ * App shells — responsive: sidebar on desktop, bottom-nav on mobile
  * ================================================================= */
+
+/* ---- phone-shell (admin / owner login pages) ---- */
 .phone-shell {
   width: 100%;
-  max-width: 100%;
-  margin: 0 auto;
   min-height: 100vh;
   background-color: var(--background);
   position: relative;
-  padding-bottom: 88px;
+  /* mobile: space for bottom nav */
+  padding-bottom: 72px;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .phone-shell {
-    padding-bottom: 32px;
-    margin: 0 auto;
-    min-height: 100vh;
-    border-radius: 0;
-    box-shadow: none;
-    overflow: visible;
-  }
-  body {
-    background: var(--background);
-    min-height: 100vh;
+    padding-bottom: 0;
   }
 }
 
-/* Inner content container helper for full-width pages */
-.phone-shell > main,
-.phone-shell > .page-content {
-  width: 100%;
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
+/* ---- app-shell (user, admin dashboard, owner dashboard) ----
+   Mobile  → full width, bottom-nav padding
+   Desktop → left sidebar offset, no bottom padding             */
+@layer components {
+  .app-shell {
+    @apply w-full relative bg-background;
+    min-height: 100dvh;
+    padding-bottom: 72px; /* mobile bottom nav height */
+    padding-left: 0;
+    overflow-x: hidden;
+    animation: shell-fade 0.3s ease-out;
+  }
+  @media (min-width: 1024px) {
+    .app-shell {
+      padding-left: 240px; /* desktop sidebar width */
+      padding-bottom: 0;
+    }
+  }
 }
 
 /* =================================================================
@@ -394,16 +395,6 @@ body {
   }
   .label-eyebrow {
     @apply text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground;
-  }
-
-  /* App shell — full-width web layout with left sidebar */
-  .app-shell {
-    @apply w-full relative bg-background;
-    min-height: 100dvh;
-    padding-left: 220px; /* sidebar width */
-    padding-bottom: 0;
-    overflow-x: hidden;
-    animation: shell-fade 0.3s ease-out;
   }
   .topbar {
     @apply sticky top-0 z-30 flex items-center justify-between px-5 py-4 bg-white/90 backdrop-blur-sm text-primary;

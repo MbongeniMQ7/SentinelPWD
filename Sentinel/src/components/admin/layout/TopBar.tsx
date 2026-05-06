@@ -20,11 +20,12 @@ export function TopBar({
 
   return (
     <header className="sticky top-0 z-40 bg-surface border-b border-border">
-      <div className="flex items-center justify-between px-4 h-14">
-        <button className="p-2 -ml-2 text-ink" aria-label="Menu">
+      <div className="flex items-center justify-between px-4 lg:px-8 h-14 lg:h-16">
+        {/* Hamburger — only on mobile (desktop has sidebar) */}
+        <button className="lg:hidden p-2 -ml-2 text-ink" aria-label="Menu">
           <Menu className="h-5 w-5" />
         </button>
-        <h1 className="text-[15px] font-bold tracking-tight text-ink">{title}</h1>
+        <h1 className="text-[15px] lg:text-lg font-bold tracking-tight text-ink">{title}</h1>
         <div className="flex items-center gap-2">
           {right}
           {showBell && (
@@ -54,3 +55,4 @@ export function TopBar({
     </header>
   );
 }
+

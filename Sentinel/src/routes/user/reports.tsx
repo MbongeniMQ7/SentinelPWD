@@ -118,7 +118,7 @@ function Reports() {
   return (
     <div className="app-shell flex flex-col">
       <AppHeader battery={null} title="Reports" />
-      <main className="flex-1 px-8 py-6 space-y-5 max-w-5xl">
+      <main className="flex-1 px-8 py-6 space-y-5 w-full">
         <div>
           <h1 className="text-4xl font-display font-bold">Reports</h1>
           <p className="text-sm text-muted-foreground mt-2">

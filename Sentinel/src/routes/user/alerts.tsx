@@ -74,7 +74,7 @@ function Alerts() {
   return (
     <div className="app-shell flex flex-col">
       <AppHeader battery={null} title="Safety Alerts" />
-      <main className="flex-1 px-8 py-6 space-y-5 max-w-4xl">
+      <main className="flex-1 px-8 py-6 space-y-5 w-full">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-display font-bold">Safety Alerts</h1>

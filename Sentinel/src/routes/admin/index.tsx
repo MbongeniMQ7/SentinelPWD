@@ -109,8 +109,9 @@ function LoginPage() {
   }
 
   return (
-    <div className="phone-shell !pb-0 flex flex-col" style={{ background: "linear-gradient(180deg, oklch(0.97 0.01 250), oklch(0.93 0.02 250))" }}>
-      <main className="flex-1 px-5 pt-10">
+    <div className="min-h-screen flex flex-col pb-0!" style={{ background: "linear-gradient(180deg, oklch(0.97 0.01 250), oklch(0.93 0.02 250))" }}>
+      <main className="flex-1 flex items-center justify-center px-5 py-10">
+        <div className="w-full max-w-md">
         <div className="bg-surface rounded-[28px] shadow-sm p-6 pt-8">
           <h1 className="text-[30px] font-extrabold text-ink leading-tight">
             {mode === "login" ? "Welcome Back" : "Create Account"}
@@ -295,16 +296,17 @@ function LoginPage() {
             </button>
           </form>
         </div>
+        </div>
       </main>
 
-      <footer className="mt-auto px-5 py-6 bg-info-soft/40">
-        <div className="flex items-center justify-between text-[10px] font-bold tracking-wider text-ink-soft">
-          <span>© 2026<br />SENTINELAI<br />GLOBAL</span>
-          <Link to="/" className="hover:text-ink">PRIVACY<br />POLICY</Link>
-          <Link to="/" className="hover:text-ink">COMPLIANCE</Link>
-        </div>
-        <div className="mt-3 flex items-center justify-center gap-2 text-[11px] font-bold tracking-wider text-ink-soft">
-          <Globe className="h-3 w-3" /> GLOBAL TERMINAL (EN-UK)
+      <footer className="px-8 py-5 bg-ink">
+        <div className="flex items-center justify-between text-[11px] font-extrabold tracking-widest text-white/80 uppercase">
+          <span>© 2026 SentinelAI Global</span>
+          <div className="flex items-center gap-6">
+            <Link to="/" className="hover:text-white transition">Privacy Policy</Link>
+            <Link to="/" className="hover:text-white transition">Compliance</Link>
+            <span className="flex items-center gap-1.5"><Globe className="h-3 w-3" /> EN-UK</span>
+          </div>
         </div>
       </footer>
     </div>

@@ -225,7 +225,7 @@ function WorkerDashboard() {
     <div className="app-shell flex flex-col">
       <AppHeader battery="98% BLE" title="Fatigue Dashboard" />
 
-      <main className="flex-1 px-8 py-6 space-y-5 overflow-y-auto max-w-5xl">
+      <main className="flex-1 px-8 py-6 space-y-5 overflow-y-auto w-full">
         {/* Session status banner */}
         {source === "demo" && (
           <div className="rounded-xl bg-warning-soft border border-warning/30 px-4 py-2.5 flex items-center gap-2">
