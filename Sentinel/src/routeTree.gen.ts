@@ -48,10 +48,14 @@ import { Route as AdminWorkforceRouteImport } from './routes/admin/workforce'
 import { Route as AdminSupportRouteImport } from './routes/admin/support'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AdminRestRouteImport } from './routes/admin/rest'
+import { Route as AdminReportsRouteImport } from './routes/admin/reports'
 import { Route as AdminOnboardingRouteImport } from './routes/admin/onboarding'
+import { Route as AdminHierarchyRouteImport } from './routes/admin/hierarchy'
 import { Route as AdminFatigueDashboardRouteImport } from './routes/admin/fatigue-dashboard'
 import { Route as AdminDevicesRouteImport } from './routes/admin/devices'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
+import { Route as AdminCreateManagerRouteImport } from './routes/admin/create-manager'
+import { Route as AdminCameraRouteImport } from './routes/admin/camera'
 import { Route as AdminBillingRouteImport } from './routes/admin/billing'
 import { Route as AdminAlertsRouteImport } from './routes/admin/alerts'
 import { Route as OwnerCompaniesIndexRouteImport } from './routes/owner/companies.index'
@@ -254,9 +258,19 @@ const AdminRestRoute = AdminRestRouteImport.update({
   path: '/rest',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHierarchyRoute = AdminHierarchyRouteImport.update({
+  id: '/hierarchy',
+  path: '/hierarchy',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminFatigueDashboardRoute = AdminFatigueDashboardRouteImport.update({
@@ -272,6 +286,16 @@ const AdminDevicesRoute = AdminDevicesRouteImport.update({
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCreateManagerRoute = AdminCreateManagerRouteImport.update({
+  id: '/create-manager',
+  path: '/create-manager',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCameraRoute = AdminCameraRouteImport.update({
+  id: '/camera',
+  path: '/camera',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminBillingRoute = AdminBillingRouteImport.update({
@@ -313,10 +337,14 @@ export interface FileRoutesByFullPath {
   '/user': typeof UserRouteWithChildren
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/camera': typeof AdminCameraRoute
+  '/admin/create-manager': typeof AdminCreateManagerRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/devices': typeof AdminDevicesRoute
   '/admin/fatigue-dashboard': typeof AdminFatigueDashboardRoute
+  '/admin/hierarchy': typeof AdminHierarchyRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/rest': typeof AdminRestRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
@@ -361,10 +389,14 @@ export interface FileRoutesByTo {
   '/choose-role': typeof ChooseRoleRoute
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/camera': typeof AdminCameraRoute
+  '/admin/create-manager': typeof AdminCreateManagerRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/devices': typeof AdminDevicesRoute
   '/admin/fatigue-dashboard': typeof AdminFatigueDashboardRoute
+  '/admin/hierarchy': typeof AdminHierarchyRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/rest': typeof AdminRestRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
@@ -412,10 +444,14 @@ export interface FileRoutesById {
   '/user': typeof UserRouteWithChildren
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/camera': typeof AdminCameraRoute
+  '/admin/create-manager': typeof AdminCreateManagerRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/devices': typeof AdminDevicesRoute
   '/admin/fatigue-dashboard': typeof AdminFatigueDashboardRoute
+  '/admin/hierarchy': typeof AdminHierarchyRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/rest': typeof AdminRestRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
@@ -465,10 +501,14 @@ export interface FileRouteTypes {
     | '/user'
     | '/admin/alerts'
     | '/admin/billing'
+    | '/admin/camera'
+    | '/admin/create-manager'
     | '/admin/dashboard'
     | '/admin/devices'
     | '/admin/fatigue-dashboard'
+    | '/admin/hierarchy'
     | '/admin/onboarding'
+    | '/admin/reports'
     | '/admin/rest'
     | '/admin/settings'
     | '/admin/support'
@@ -513,10 +553,14 @@ export interface FileRouteTypes {
     | '/choose-role'
     | '/admin/alerts'
     | '/admin/billing'
+    | '/admin/camera'
+    | '/admin/create-manager'
     | '/admin/dashboard'
     | '/admin/devices'
     | '/admin/fatigue-dashboard'
+    | '/admin/hierarchy'
     | '/admin/onboarding'
+    | '/admin/reports'
     | '/admin/rest'
     | '/admin/settings'
     | '/admin/support'
@@ -563,10 +607,14 @@ export interface FileRouteTypes {
     | '/user'
     | '/admin/alerts'
     | '/admin/billing'
+    | '/admin/camera'
+    | '/admin/create-manager'
     | '/admin/dashboard'
     | '/admin/devices'
     | '/admin/fatigue-dashboard'
+    | '/admin/hierarchy'
     | '/admin/onboarding'
+    | '/admin/reports'
     | '/admin/rest'
     | '/admin/settings'
     | '/admin/support'
@@ -891,11 +939,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRestRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/onboarding': {
       id: '/admin/onboarding'
       path: '/onboarding'
       fullPath: '/admin/onboarding'
       preLoaderRoute: typeof AdminOnboardingRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/hierarchy': {
+      id: '/admin/hierarchy'
+      path: '/hierarchy'
+      fullPath: '/admin/hierarchy'
+      preLoaderRoute: typeof AdminHierarchyRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/fatigue-dashboard': {
@@ -917,6 +979,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/create-manager': {
+      id: '/admin/create-manager'
+      path: '/create-manager'
+      fullPath: '/admin/create-manager'
+      preLoaderRoute: typeof AdminCreateManagerRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/camera': {
+      id: '/admin/camera'
+      path: '/camera'
+      fullPath: '/admin/camera'
+      preLoaderRoute: typeof AdminCameraRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/billing': {
@@ -967,10 +1043,14 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminAlertsRoute: typeof AdminAlertsRoute
   AdminBillingRoute: typeof AdminBillingRoute
+  AdminCameraRoute: typeof AdminCameraRoute
+  AdminCreateManagerRoute: typeof AdminCreateManagerRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminDevicesRoute: typeof AdminDevicesRoute
   AdminFatigueDashboardRoute: typeof AdminFatigueDashboardRoute
+  AdminHierarchyRoute: typeof AdminHierarchyRoute
   AdminOnboardingRoute: typeof AdminOnboardingRoute
+  AdminReportsRoute: typeof AdminReportsRoute
   AdminRestRoute: typeof AdminRestRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSupportRoute: typeof AdminSupportRoute
@@ -982,10 +1062,14 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAlertsRoute: AdminAlertsRoute,
   AdminBillingRoute: AdminBillingRoute,
+  AdminCameraRoute: AdminCameraRoute,
+  AdminCreateManagerRoute: AdminCreateManagerRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminDevicesRoute: AdminDevicesRoute,
   AdminFatigueDashboardRoute: AdminFatigueDashboardRoute,
+  AdminHierarchyRoute: AdminHierarchyRoute,
   AdminOnboardingRoute: AdminOnboardingRoute,
+  AdminReportsRoute: AdminReportsRoute,
   AdminRestRoute: AdminRestRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminSupportRoute: AdminSupportRoute,

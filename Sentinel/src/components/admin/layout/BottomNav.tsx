@@ -1,8 +1,8 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, Bell, Router as RouterIcon, Settings } from "lucide-react";
+import { Home, Users, Bell, Router as RouterIcon, Settings, Camera, FileText, GitBranch, UserPlus, Bug } from "lucide-react";
 import logo from "@/assets/logo.png";
 
-const items = [
+const primaryItems = [
   { to: "/admin/dashboard", label: "HOME", icon: Home },
   { to: "/admin/workforce", label: "WORKFORCE", icon: Users },
   { to: "/admin/alerts", label: "ALERTS", icon: Bell },
@@ -10,16 +10,26 @@ const items = [
   { to: "/admin/settings", label: "SETTINGS", icon: Settings },
 ] as const;
 
+const sidebarItems = [
+  { to: "/admin/dashboard", label: "Home", icon: Home, section: "OVERVIEW" },
+  { to: "/admin/workforce", label: "Workforce", icon: Users, section: "OVERVIEW" },
+  { to: "/admin/alerts", label: "Alerts", icon: Bell, section: "OVERVIEW" },
+  { to: "/admin/camera", label: "Camera Analysis", icon: Camera, section: "MONITORING" },
+  { to: "/admin/devices", label: "Devices", icon: RouterIcon, section: "MONITORING" },
+  { to: "/admin/onboarding", label: "Register Employee", icon: UserPlus, section: "MANAGEMENT" },
+  { to: "/admin/create-manager", label: "Create Manager", icon: UserPlus, section: "MANAGEMENT" },
+  { to: "/admin/hierarchy", label: "Hierarchy", icon: GitBranch, section: "MANAGEMENT" },
+  { to: "/admin/reports", label: "Reports", icon: FileText, section: "OPERATIONS" },
+  { to: "/admin/support", label: "Bug Report", icon: Bug, section: "OPERATIONS" },
+  { to: "/admin/billing", label: "Billing", icon: Settings, section: "ACCOUNT" },
+  { to: "/admin/settings", label: "Settings", icon: Settings, section: "ACCOUNT" },
+] as const;
+
+const sections = ["OVERVIEW", "MONITORING", "MANAGEMENT", "OPERATIONS", "ACCOUNT"] as const;
+
 function isActive(to: string, pathname: string) {
   if (to === "/admin/dashboard") return pathname === to;
-  if (to === "/admin/workforce")
-    return pathname.startsWith("/admin/workforce") || pathname.startsWith("/admin/employee") || pathname.startsWith("/admin/onboarding") || pathname.startsWith("/admin/rest");
-  if (to === "/admin/alerts")
-    return pathname.startsWith("/admin/alerts") || pathname.startsWith("/admin/support");
-  if (to === "/admin/devices") return pathname.startsWith("/admin/devices");
-  if (to === "/admin/settings")
-    return pathname.startsWith("/admin/settings") || pathname.startsWith("/admin/billing");
-  return false;
+  return pathname.startsWith(to);
 }
 
 export function BottomNav() {
@@ -45,34 +55,41 @@ export function BottomNav() {
 
         {/* Nav */}
         <nav className="flex-1 flex flex-col gap-1 px-3 py-4 overflow-y-auto">
-          <p className="px-3 mb-2 text-[9px] font-extrabold tracking-[0.2em] uppercase" style={{ color: "oklch(0.65 0.04 255)" }}>Menu</p>
-          {items.map(({ to, label, icon: Icon }) => {
-            const active = isActive(to, pathname);
+          {sections.map((section) => {
+            const group = sidebarItems.filter((i) => i.section === section);
             return (
-              <Link
-                key={to}
-                to={to}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150"
-                style={active ? {
-                  background: "oklch(0.95 0.06 85)",
-                  borderLeft: "3px solid oklch(0.72 0.17 80)",
-                  color: "oklch(0.30 0.08 70)",
-                } : {
-                  color: "oklch(0.38 0.03 260)",
-                  borderLeft: "3px solid transparent",
-                }}
-              >
-                <span
-                  className="flex items-center justify-center h-8 w-8 rounded-lg shrink-0"
-                  style={active
-                    ? { background: "oklch(0.88 0.10 82)" }
-                    : { background: "oklch(0.94 0.01 250)" }
-                  }
-                >
-                  <Icon className="h-4 w-4" strokeWidth={active ? 2.4 : 1.8} />
-                </span>
-                <span className="text-[13px] font-bold tracking-wider">{label}</span>
-              </Link>
+              <div key={section} className="mb-2">
+                <p className="px-3 mb-1 text-[9px] font-extrabold tracking-[0.2em] uppercase" style={{ color: "oklch(0.65 0.04 255)" }}>{section}</p>
+                {group.map(({ to, label, icon: Icon }) => {
+                  const active = isActive(to, pathname);
+                  return (
+                    <Link
+                      key={to}
+                      to={to}
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150"
+                      style={active ? {
+                        background: "oklch(0.95 0.06 85)",
+                        borderLeft: "3px solid oklch(0.72 0.17 80)",
+                        color: "oklch(0.30 0.08 70)",
+                      } : {
+                        color: "oklch(0.38 0.03 260)",
+                        borderLeft: "3px solid transparent",
+                      }}
+                    >
+                      <span
+                        className="flex items-center justify-center h-7 w-7 rounded-lg shrink-0"
+                        style={active
+                          ? { background: "oklch(0.88 0.10 82)" }
+                          : { background: "oklch(0.94 0.01 250)" }
+                        }
+                      >
+                        <Icon className="h-3.5 w-3.5" strokeWidth={active ? 2.4 : 1.8} />
+                      </span>
+                      <span className="text-[12px] font-bold tracking-wide">{label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
@@ -98,7 +115,7 @@ export function BottomNav() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className="grid grid-cols-5 px-2 py-2">
-          {items.map(({ to, label, icon: Icon }) => {
+          {primaryItems.map(({ to, label, icon: Icon }) => {
             const active = isActive(to, pathname);
             return (
               <li key={to}>
