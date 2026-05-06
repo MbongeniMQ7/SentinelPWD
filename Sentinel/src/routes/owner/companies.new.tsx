@@ -108,17 +108,6 @@ const AddCompany = () => {
     }
   };
 
-  const Field = ({ k, placeholder, type = "text" }: { k: keyof typeof form; placeholder: string; type?: string }) => (
-    <input
-      value={form[k]}
-      onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))}
-      placeholder={placeholder}
-      type={type}
-      maxLength={k === "password" ? 128 : 255}
-      className="w-full bg-transparent border-b border-border py-3 text-primary outline-none placeholder:text-muted-foreground/70 focus:border-gold transition-colors"
-    />
-  );
-
   return (
     <AppShell>
       <TopBar />
@@ -137,16 +126,44 @@ const AddCompany = () => {
         <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-card space-y-6">
           <div>
             <div className="flex items-center gap-2 label-eyebrow"><span className="h-0.5 w-4 bg-gold" />ORGANIZATION DETAILS</div>
-            <div className="mt-4"><Field k="org" placeholder="e.g. Cyberdyne Systems" /></div>
+            <div className="mt-4">
+              <input
+                value={form.org}
+                onChange={(e) => setForm((f) => ({ ...f, org: e.target.value }))}
+                placeholder="e.g. Cyberdyne Systems"
+                maxLength={100}
+                className="w-full bg-transparent border-b border-border py-3 text-primary outline-none placeholder:text-muted-foreground/70 focus:border-gold transition-colors"
+              />
+            </div>
           </div>
 
           <div>
             <div className="flex items-center gap-2 label-eyebrow"><span className="h-0.5 w-4 bg-gold" />ADMIN IDENTIFICATION</div>
             <div className="mt-4 space-y-4">
-              <Field k="name" placeholder="Johnathan Doe" />
-              <Field k="email" placeholder="j.doe@company.com" type="email" />
+              <input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Johnathan Doe"
+                maxLength={80}
+                className="w-full bg-transparent border-b border-border py-3 text-primary outline-none placeholder:text-muted-foreground/70 focus:border-gold transition-colors"
+              />
+              <input
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="j.doe@company.com"
+                type="email"
+                maxLength={255}
+                className="w-full bg-transparent border-b border-border py-3 text-primary outline-none placeholder:text-muted-foreground/70 focus:border-gold transition-colors"
+              />
               <div className="relative">
-                <Field k="password" placeholder="••••••••••••" type={showPwd ? "text" : "password"} />
+                <input
+                  value={form.password}
+                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder="••••••••••••"
+                  type={showPwd ? "text" : "password"}
+                  maxLength={128}
+                  className="w-full bg-transparent border-b border-border py-3 text-primary outline-none placeholder:text-muted-foreground/70 focus:border-gold transition-colors"
+                />
                 <button onClick={() => setShowPwd((s) => !s)} className="absolute right-0 top-3 text-muted-foreground" aria-label="Toggle password visibility">
                   <Eye className="h-5 w-5" />
                 </button>
