@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { User, ShieldCheck, Shield, Mail, Lock, ArrowRight, Globe, Loader2, Camera } from "lucide-react";
-import { signIn, signUp, resetPassword } from "@/lib/auth";
+import { signInAny, resetPassword } from "@/lib/auth";
 import { uploadAvatar, updateProfile } from "@/lib/profile";
 import type { AppRole } from "@/lib/supabase";
 
@@ -52,31 +52,18 @@ const Login = () => {
     setLoading(true);
     try {
       if (mode === "login") {
-        const { error } = await signIn(email, password, role as AppRole);
+        const { error, role: detectedRole } = await signInAny(email, password);
         if (error) {
           toast.error(error);
           return;
         }
         toast.success("Welcome back!");
-        nav({ to: roleRedirects[role] });
+        const dest = detectedRole === "OWNER" ? "/owner/dashboard"
+          : detectedRole === "MANAGER" ? "/admin/dashboard"
+          : "/user/home";
+        nav({ to: dest });
       } else {
-        const { error, needsEmailConfirmation } = await signUp(email, password, role as AppRole, firstName, lastName);
-        if (error) {
-          toast.error(error);
-          return;
-        }
-        if (avatarFile && !needsEmailConfirmation) {
-          const { url, error: uploadError } = await uploadAvatar(avatarFile);
-          if (url) await updateProfile({ avatar_url: url });
-          if (uploadError) toast.error("Profile photo upload failed — you can add it later in Settings.");
-        }
-        if (needsEmailConfirmation) {
-          toast.success("Check your email to confirm your account.");
-          setMode("login");
-        } else {
-          toast.success("Account created!");
-          nav({ to: roleRedirects[role] });
-        }
+        toast.info("New accounts are created by your administrator. Please contact them to get access.");
       }
     } finally {
       setLoading(false);

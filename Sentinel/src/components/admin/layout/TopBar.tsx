@@ -14,8 +14,9 @@ export function TopBar({
   right?: ReactNode;
 }) {
   const { profile } = useProfile();
-  const initials = profile?.full_name
-    ? profile.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+  const displayName = profile ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() : null;
+  const initials = displayName
+    ? displayName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : null;
 
   return (
@@ -35,14 +36,7 @@ export function TopBar({
           )}
           {showAvatar && (
             <div className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-warning/40 bg-muted flex items-center justify-center">
-              {profile?.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt={profile.full_name ?? "Admin"}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              ) : initials ? (
+              {initials ? (
                 <span className="text-xs font-bold text-ink">{initials}</span>
               ) : (
                 <UserCircle2 className="h-5 w-5 text-ink-soft" />

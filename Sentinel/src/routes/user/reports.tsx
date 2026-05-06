@@ -55,7 +55,9 @@ function Reports() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<"week" | "month" | "all" | null>(null);
   const { profile } = useProfile();
-  const userName = profile?.full_name ?? profile?.email ?? "User";
+  const userName = profile
+    ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || profile?.email || "User"
+    : "User";
 
   useEffect(() => {
     Promise.all([loadSessionHistory(60), loadAlertsFromDb(100)]).then(([s, a]) => {

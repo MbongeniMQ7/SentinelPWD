@@ -12,8 +12,9 @@ interface TopBarProps {
 export const TopBar = ({ title = "SentinelAI", showBell, showSettings, variant = "light" }: TopBarProps) => {
   const nav = useNavigate();
   const { profile } = useProfile();
-  const initials = profile?.full_name
-    ? profile.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+  const displayName = profile ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() : null;
+  const initials = displayName
+    ? displayName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : null;
   const isLight = variant === "light";
   return (
@@ -38,9 +39,7 @@ export const TopBar = ({ title = "SentinelAI", showBell, showSettings, variant =
         )}
         {showBell && <Bell className="h-5 w-5" />}
         <div className="h-8 w-8 rounded-full ring-2 ring-white overflow-hidden bg-linear-to-br from-amber-300 to-amber-600 flex items-center justify-center">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt={profile.full_name ?? "Owner"} className="h-full w-full object-cover" />
-          ) : initials ? (
+          {initials ? (
             <span className="text-white text-xs font-bold">{initials}</span>
           ) : (
             <UserCircle2 className="h-5 w-5 text-white" />

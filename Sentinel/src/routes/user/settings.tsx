@@ -68,8 +68,10 @@ function Settings() {
   const [mfaEnrolled, setMfaEnrolled] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const displayName = profile?.full_name ?? user?.email?.split("@")[0] ?? "User";
-  const jobTitle = profile?.job_title ?? profile?.department ?? "SentinelAI Member";
+  const displayName = profile
+    ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || user?.email?.split("@")[0] || "User"
+    : user?.email?.split("@")[0] ?? "User";
+  const jobTitle = (profile as any)?.employee_profiles?.job_title ?? "SentinelAI Member";
   const initials = displayName.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
 
   // Load prefs from localStorage and apply dark mode
@@ -105,7 +107,7 @@ function Settings() {
       const { url, error: uploadError } = await uploadAvatar(file);
       if (uploadError) { toast.error(uploadError); return; }
       if (url) {
-        await updateProfile({ avatar_url: url });
+        // avatar stored in bucket only — no url column in profiles
         refetch();
         toast.success("Profile photo updated.");
       }
@@ -152,14 +154,6 @@ function Settings() {
           <div className="h-16 w-16 rounded-2xl overflow-hidden bg-secondary flex items-center justify-center">
             {loading ? (
               <div className="w-full h-full animate-pulse bg-muted" />
-            ) : profile?.avatar_url && !avatarError ? (
-              <img
-                src={profile.avatar_url}
-                alt={displayName}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-                onError={() => setAvatarError(true)}
-              />
             ) : (
               <span className="text-xl font-bold text-navy">{initials || <UserCircle2 className="h-8 w-8 text-muted-foreground" />}</span>
             )}

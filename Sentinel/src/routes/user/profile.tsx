@@ -57,14 +57,6 @@ function Profile() {
               <div className="h-20 w-20 rounded-2xl overflow-hidden bg-navy/20 flex items-center justify-center">
                 {loading ? (
                   <div className="w-full h-full bg-navy-foreground/10 animate-pulse" />
-                ) : profile?.avatar_url && !avatarError ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={displayName}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                    onError={() => setAvatarError(true)}
-                  />
                 ) : (
                   <span className="text-2xl font-display font-bold text-navy-foreground">
                     {initials || <UserCircle2 className="h-10 w-10 text-navy-foreground/50" />}
@@ -107,12 +99,12 @@ function Profile() {
                 <div className="text-sm font-semibold">{user?.email ?? "—"}</div>
               </div>
             </div>
-            {profile?.company && (
+            {profile?.company_id && (
               <div className="px-4 py-3 flex items-center gap-3">
                 <Shield className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <div className="text-xs text-muted-foreground">Company</div>
-                  <div className="text-sm font-semibold">{profile.company}</div>
+                  <div className="text-sm font-semibold">{profile.company_id}</div>
                 </div>
               </div>
             )}
