@@ -1,17 +1,121 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/owner/AppShell";
 import { TopBar } from "@/components/owner/TopBar";
-import { Building2, ShieldCheck, Banknote, Users } from "lucide-react";
+import { Building2, ShieldCheck, Banknote, Users, AlertTriangle, Bug, ClipboardList } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+interface DashStats {
+  totalCompanies: number;
+  activeCompanies: number;
+  totalUsers: number;
+  activeUsers: number;
+  activeCameraSessions: number;
+  activeWristbands: number;
+  openAlerts: number;
+  openBugs: number;
+  monthlyRevenue: number;
+}
+
+interface AuditEntry {
+  audit_id: string;
+  action_type: string;
+  description: string | null;
+  created_at: string;
+  profiles: { username: string } | null;
+}
 
 const Dashboard = () => {
   const [usageRange, setUsageRange] = useState<"DAY" | "WEEK">("DAY");
-  const stats = [
-    { Icon: Building2, value: "42", label: "TOTAL COMPANIES", badge: "+4 THIS MONTH", badgeStyle: "bg-gold text-gold-foreground" },
-    { Icon: ShieldCheck, value: "38", label: "ACTIVE SUBS", badge: "91% RATE", badgeStyle: "bg-gold text-gold-foreground" },
-    { Icon: Banknote, value: "R125,400", label: "", badge: "TARGET: 105%", badgeStyle: "bg-[#5a4a1a] text-gold" },
-    { Icon: Users, value: "1,250", label: "TOTAL USERS", badge: "LIVE NOW: 142", badgeStyle: "bg-secondary text-primary" },
+  const [data, setData] = useState<DashStats | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
+
+  useEffect(() => {
+    async function load() {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split("T")[0];
+
+      const [
+        { count: totalCompanies },
+        { count: activeCompanies },
+        { count: totalUsers },
+        { count: activeUsers },
+        { count: activeCameraSessions },
+        { count: activeWristbands },
+        { count: openAlerts },
+        { count: openBugs },
+        { data: payments },
+        { data: logs },
+      ] = await Promise.all([
+        supabase.from("companies").select("*", { count: "exact", head: true }),
+        supabase.from("companies").select("*", { count: "exact", head: true }).eq("status", "ACTIVE"),
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase.from("user_presence").select("*", { count: "exact", head: true }).eq("is_online", true),
+        supabase.from("camera_analysis_sessions").select("*", { count: "exact", head: true }).eq("status", "RUNNING"),
+        supabase.from("iot_wristbands").select("*", { count: "exact", head: true }).eq("status", "ACTIVE"),
+        supabase.from("risk_alerts").select("*", { count: "exact", head: true }).eq("is_seen_by_manager", false),
+        supabase.from("bug_reports").select("*", { count: "exact", head: true }).in("bug_status", ["OPEN", "IN_PROGRESS"]),
+        supabase
+          .from("payments")
+          .select("amount")
+          .eq("payment_status", "PAID")
+          .gte("payment_date", monthStart)
+          .lt("payment_date", monthEnd),
+        supabase
+          .from("audit_logs")
+          .select("audit_id, action_type, description, created_at, profiles(username)")
+          .order("created_at", { ascending: false })
+          .limit(6),
+      ]);
+
+      const monthlyRevenue = (payments ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
+
+      setData({
+        totalCompanies: totalCompanies ?? 0,
+        activeCompanies: activeCompanies ?? 0,
+        totalUsers: totalUsers ?? 0,
+        activeUsers: activeUsers ?? 0,
+        activeCameraSessions: activeCameraSessions ?? 0,
+        activeWristbands: activeWristbands ?? 0,
+        openAlerts: openAlerts ?? 0,
+        openBugs: openBugs ?? 0,
+        monthlyRevenue,
+      });
+      setAuditLogs((logs as unknown as AuditEntry[]) ?? []);
+    }
+    load().catch(() => toast.error("Failed to load dashboard stats"));
+  }, []);
+
+  const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+  const fmtRand = (n: number) => `R${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtTime = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  };
+
+  const stats = data ? [
+    { Icon: Building2, value: String(data.totalCompanies), label: "TOTAL COMPANIES", badge: `${data.activeCompanies} ACTIVE`, badgeStyle: "bg-gold text-gold-foreground" },
+    { Icon: ShieldCheck, value: String(data.activeCompanies), label: "ACTIVE SUBS", badge: `${data.totalCompanies > 0 ? Math.round((data.activeCompanies / data.totalCompanies) * 100) : 0}% RATE`, badgeStyle: "bg-gold text-gold-foreground" },
+    { Icon: Banknote, value: fmtRand(data.monthlyRevenue), label: "MONTHLY REVENUE", badge: "THIS MONTH", badgeStyle: "bg-[#5a4a1a] text-gold" },
+    { Icon: ShieldCheck, value: `${data.activeCameraSessions} CAM`, label: "ACTIVE SESSIONS", badge: `${data.activeWristbands} WRISTBANDS`, badgeStyle: "bg-[#5a4a1a] text-gold" },
+    { Icon: Users, value: fmt(data.totalUsers), label: "TOTAL USERS", badge: `LIVE: ${data.activeUsers}`, badgeStyle: "bg-secondary text-primary" },
+    { Icon: AlertTriangle, value: String(data.openAlerts), label: "OPEN ALERTS", badge: "UNSEEN", badgeStyle: "bg-destructive-soft text-destructive" },
+    { Icon: Bug, value: String(data.openBugs), label: "OPEN BUG REPORTS", badge: "OPEN + IN PROGRESS", badgeStyle: "bg-secondary text-primary" },
+  ] : [
+    { Icon: Building2, value: "—", label: "TOTAL COMPANIES", badge: "LOADING", badgeStyle: "bg-gold text-gold-foreground" },
+    { Icon: ShieldCheck, value: "—", label: "ACTIVE SUBS", badge: "LOADING", badgeStyle: "bg-gold text-gold-foreground" },
+    { Icon: Banknote, value: "—", label: "MONTHLY REVENUE", badge: "LOADING", badgeStyle: "bg-[#5a4a1a] text-gold" },
+    { Icon: ShieldCheck, value: "—", label: "ACTIVE SESSIONS", badge: "LOADING", badgeStyle: "bg-[#5a4a1a] text-gold" },
+    { Icon: Users, value: "—", label: "TOTAL USERS", badge: "LOADING", badgeStyle: "bg-secondary text-primary" },
+    { Icon: AlertTriangle, value: "—", label: "OPEN ALERTS", badge: "LOADING", badgeStyle: "bg-destructive-soft text-destructive" },
+    { Icon: Bug, value: "—", label: "OPEN BUG REPORTS", badge: "LOADING", badgeStyle: "bg-secondary text-primary" },
   ];
 
   return (
@@ -92,6 +196,37 @@ const Dashboard = () => {
                 +
               </button>
             </div>
+          </div>
+
+          {/* Audit Logs */}
+          <div className="stat-card">
+            <div className="flex items-center gap-2 mb-4">
+              <ClipboardList className="h-5 w-5 text-primary/70" />
+              <h3 className="font-display font-bold text-primary text-xl">Recent Activity &amp; Audit Logs</h3>
+            </div>
+            {auditLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No recent activity recorded.</p>
+            ) : (
+              <div className="space-y-3">
+                {auditLogs.map((log) => (
+                  <div key={log.audit_id} className="flex items-start gap-3 border-t border-border pt-3 first:border-t-0 first:pt-0">
+                    <div className="h-2 w-2 rounded-full bg-gold mt-1.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-primary text-sm truncate">{log.action_type.replace(/_/g, " ")}</span>
+                        <span className="text-[11px] text-muted-foreground shrink-0">{fmtTime(log.created_at)}</span>
+                      </div>
+                      {log.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{log.description}</p>
+                      )}
+                      {log.profiles?.username && (
+                        <span className="text-[11px] text-primary/60 font-semibold">@{log.profiles.username}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
