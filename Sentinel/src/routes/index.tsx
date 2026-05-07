@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { BrandLogo } from "@/components/user/BrandLogo";
 import {
   Sparkles,
@@ -6,8 +6,24 @@ import {
   ShieldCheck,
   ArrowRight,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("auth_user_id", session.user.id)
+      .maybeSingle();
+
+    const role = profile?.role;
+    if (role === "MANAGER") throw redirect({ to: "/admin/dashboard" });
+    if (role === "OWNER") throw redirect({ to: "/owner/dashboard" });
+    if (role === "EMPLOYEE") throw redirect({ to: "/user/home" });
+  },
   component: Welcome,
 });
 

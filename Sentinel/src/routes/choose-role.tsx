@@ -1,13 +1,28 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, ShieldCheck, Activity, Sparkles } from "lucide-react";
 import { BrandLogo } from "@/components/user/BrandLogo";
 import logo from "@/assets/logo.png";
 import { signInAny } from "@/lib/auth";
-import type { AppRole } from "@/lib/supabase";
+import { supabase, type AppRole } from "@/lib/supabase";
 
 export const Route = createFileRoute("/choose-role")({
+  beforeLoad: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("auth_user_id", session.user.id)
+      .maybeSingle();
+
+    const role = profile?.role;
+    if (role === "MANAGER") throw redirect({ to: "/admin/dashboard" });
+    if (role === "OWNER") throw redirect({ to: "/owner/dashboard" });
+    if (role === "EMPLOYEE") throw redirect({ to: "/user/home" });
+  },
   component: LoginPage,
 });
 
@@ -22,19 +37,27 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg(null);
     try {
       const { error, role } = await signInAny(emailOrUsername, password);
       if (error) {
+        setErrorMsg(error);
         toast.error(error);
         return;
       }
       toast.success("Welcome back!");
-      navigate({ to: role ? roleRedirects[role] : "/user/home" });
+      await navigate({ to: role ? roleRedirects[role] : "/user/home" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "An unexpected error occurred. Please try again.";
+      setErrorMsg(msg);
+      toast.error(msg);
+      console.error("[Login]", err);
     } finally {
       setLoading(false);
     }
@@ -193,6 +216,13 @@ function LoginPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Inline error */}
+              {errorMsg && (
+                <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+                  {errorMsg}
+                </p>
+              )}
 
               {/* Submit */}
               <button
