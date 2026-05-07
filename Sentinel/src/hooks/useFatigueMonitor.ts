@@ -33,8 +33,23 @@ export interface BiometricSample {
   t: number;
   /** Whether eyes are currently closed this frame. */
   eyesClosed: boolean;
-  /** Optional focus 0..1 (1 = fully focused). */
+  /** Optional focus 0..1 (1 = fully focused) derived from eye openness. */
   focus?: number;
+  /**
+   * Head yaw angle in degrees from landmark geometry (positive = turned right).
+   * When provided, reduces the effective focus score if the head is turned away.
+   */
+  headYaw?: number;
+  /**
+   * Head pitch angle in degrees from landmark geometry (positive = looking down).
+   * When provided, reduces the effective focus score if the head is tilted.
+   */
+  headPitch?: number;
+  /**
+   * Fear / distress score in [0..1] from blendshape analysis.
+   * Surfaced as a separate metric on the dashboard.
+   */
+  fearScore?: number;
 }
 
 export interface WorkerSnapshot {
@@ -45,6 +60,7 @@ export interface WorkerSnapshot {
   blinkRate: number;
   eyeClosure: number;
   focus: number;
+  fearScore: number;
   trend: number[]; // bounded ring of recent scores
   lastUpdate: number;
 }
@@ -134,6 +150,11 @@ export function useFatigueMonitor(options: UseFatigueMonitorOptions) {
   const totalMsRef = useRef(0);
   // Latest focus value seen.
   const focusRef = useRef(1);
+  // Latest head pose seen (degrees). null until first reading.
+  const headYawRef   = useRef<number | null>(null);
+  const headPitchRef = useRef<number | null>(null);
+  // Latest fear score seen (0..1).
+  const fearScoreRef = useRef(0);
   // Trend ring buffer.
   const trendRef = useRef<number[]>([]);
   // Last alert times keyed by level for cooldown.
@@ -145,12 +166,16 @@ export function useFatigueMonitor(options: UseFatigueMonitorOptions) {
   const [blinkRate, setBlinkRate] = useState(0);
   const [eyeClosure, setEyeClosure] = useState(0);
   const [trend, setTrend] = useState<number[]>([]);
+  const [fearScore, setFearScore] = useState(0);
 
   // ----- Per-frame ingest -----
   const ingest = useCallback(
     (sample: BiometricSample) => {
       const { t, eyesClosed, focus } = sample;
-      if (focus != null) focusRef.current = focus;
+      if (focus    != null) focusRef.current     = focus;
+      if (sample.headYaw   != null) headYawRef.current   = sample.headYaw;
+      if (sample.headPitch != null) headPitchRef.current = sample.headPitch;
+      if (sample.fearScore != null) fearScoreRef.current = sample.fearScore;
 
       // 1. Blink onset detection (rising edge of closed flag).
       if (eyesClosed && !prevClosedRef.current) {
@@ -193,9 +218,27 @@ export function useFatigueMonitor(options: UseFatigueMonitorOptions) {
       const bpm = (blinks / seconds) * 60;
       const perclos =
         totalMsRef.current > 0 ? closedMsRef.current / totalMsRef.current : 0;
-      const focus = focusRef.current;
+      const rawFocus = focusRef.current;
+
+      // Head pose contribution: looking away (large yaw/pitch) reduces focus.
+      // |yaw| > 30° or |pitch| > 20° are strong indicators of inattention.
+      // A trained head-pose model can replace this heuristic without changing
+      // the downstream interface — just update headYawRef/headPitchRef.
+      let headFocusFactor = 1;
+      const yaw   = headYawRef.current;
+      const pitch = headPitchRef.current;
+      if (yaw !== null && pitch !== null) {
+        const yawImpact   = Math.min(1, Math.abs(yaw)   / 30);
+        const pitchImpact = Math.min(1, Math.abs(pitch) / 20);
+        headFocusFactor   = 1 - (yawImpact * 0.6 + pitchImpact * 0.4);
+      }
+      const focus = Math.min(1, Math.max(0, rawFocus * headFocusFactor));
+
       const newScore = calculateFatigueScore(bpm, perclos, focus);
       const newLevel = mapRiskLevel(newScore);
+
+      // Fear score: convert [0..1] blendshape reading to integer 0–100.
+      const newFearScore = Math.round(fearScoreRef.current * 100);
 
       // Trend ring.
       trendRef.current.push(newScore);
@@ -206,6 +249,7 @@ export function useFatigueMonitor(options: UseFatigueMonitorOptions) {
       setBlinkRate(Math.round(bpm * 10) / 10);
       setEyeClosure(Math.round(perclos * 1000) / 1000);
       setTrend(trendRef.current.slice());
+      setFearScore(newFearScore);
 
       // Update workforce registry + notify managers.
       const snap: WorkerSnapshot = {
@@ -216,6 +260,7 @@ export function useFatigueMonitor(options: UseFatigueMonitorOptions) {
         blinkRate: bpm,
         eyeClosure: perclos,
         focus,
+        fearScore: newFearScore,
         trend: trendRef.current.slice(),
         lastUpdate: Date.now(),
       };
@@ -269,9 +314,10 @@ export function useFatigueMonitor(options: UseFatigueMonitorOptions) {
       blinkRate,
       eyeClosure,
       focus: focusRef.current,
+      fearScore,
       trend,
       ingest,
     }),
-    [score, level, blinkRate, eyeClosure, trend, ingest],
+    [score, level, blinkRate, eyeClosure, fearScore, trend, ingest],
   );
 }
