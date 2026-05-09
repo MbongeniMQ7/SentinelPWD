@@ -38,17 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const profile = session?.user ? await fetchProfile(session.user.id) : null;
-      setState({
-        session,
-        user: session?.user ?? null,
-        role: (profile?.role as AppRole) ?? null,
-        profile,
-        loading: false,
-      });
-    });
-
+    // onAuthStateChange fires INITIAL_SESSION on mount — no need for a
+    // separate getSession() call, which would trigger fetchProfile twice.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const profile = session?.user ? await fetchProfile(session.user.id) : null;
       setState({
