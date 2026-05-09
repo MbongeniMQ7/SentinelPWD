@@ -66,6 +66,7 @@ export function BottomNav() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+    window.location.href = "/";
   }
 
   return (
