@@ -40,10 +40,10 @@ function Monitoring() {
     startCamera,
     stopCamera,
   } = useFaceDetection(videoRef);
-,
-    workerName({
-    workerId: CURRENT_WORKER_ID,
-    workerName: CURRENT_WORKER_NAME,
+
+  const fatigue = useFatigueMonitor({
+    workerId,
+    workerName,
   });
 
   // Auto-start camera when the screen mounts.
