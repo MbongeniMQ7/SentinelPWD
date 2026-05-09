@@ -133,7 +133,7 @@ function Home() {
                 : <WifiOff className="h-4 w-4 text-muted-foreground" />}
             </div>
             <div>
-              <div className="label-eyebrow">Hive IoT Status</div>
+              <div className="label-eyebrow">SentinelAI IoT Status</div>
               <div className="text-xs text-muted-foreground">
                 {hive.status === "connected"
                   ? `Live — ${hive.data?.state ?? "—"}`
