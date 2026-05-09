@@ -67,31 +67,108 @@ export interface DbSession {
 }
 
 /**
- * Persist the snapshot to Supabase using the new schema:
- * - Creates a camera_analysis_sessions record (started+stopped)
- * - Inserts one biometric_readings row with the summary metrics
+ * Resolves the current user's profile_id and company_id from Supabase.
+ * Returns null if not authenticated or profile not found.
  */
-export async function saveSessionToDb(
-  snap: Omit<SessionSnapshot, "terminatedAt"> & { terminatedAt?: string }
-): Promise<{ error: string | null }> {
+async function resolveProfile(): Promise<{ profile_id: string; company_id: string } | null> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
-
-  // Resolve profile_id and company_id
-  const { data: profile } = await supabase
+  if (!user) return null;
+  const { data } = await supabase
     .from("profiles")
     .select("profile_id, company_id")
     .eq("auth_user_id", user.id)
     .single();
+  if (!data?.profile_id || !data?.company_id) return null;
+  return data as { profile_id: string; company_id: string };
+}
 
-  if (!profile?.profile_id || !profile?.company_id) {
-    return { error: "Profile not found" };
-  }
+/**
+ * Creates a RUNNING camera_analysis_sessions record in the DB.
+ * Call this when the user starts monitoring. Returns the session_id
+ * so it can be passed to stopSessionInDb() on terminate.
+ */
+export async function startSessionInDb(): Promise<{ sessionId: string | null; error: string | null }> {
+  const profile = await resolveProfile();
+  if (!profile) return { sessionId: null, error: "Not authenticated or profile missing" };
+
+  const { data, error } = await supabase
+    .from("camera_analysis_sessions")
+    .insert({
+      employee_profile_id: profile.profile_id,
+      company_id: profile.company_id,
+      status: "RUNNING",
+      model_version: "sentinelai-camera-v1",
+    })
+    .select("session_id")
+    .single();
+
+  if (error) return { sessionId: null, error: error.message };
+  return { sessionId: data.session_id, error: null };
+}
+
+/**
+ * Updates an existing RUNNING session to STOPPED and inserts a biometric summary reading.
+ * Call this when the user terminates monitoring.
+ */
+export async function stopSessionInDb(
+  sessionId: string,
+  snap: Omit<SessionSnapshot, "terminatedAt"> & { terminatedAt?: string }
+): Promise<{ error: string | null }> {
+  const profile = await resolveProfile();
+  if (!profile) return { error: "Not authenticated" };
 
   const terminatedAt = snap.terminatedAt ?? new Date().toISOString();
   const riskLevel = snap.level.toUpperCase() as "LOW" | "MODERATE" | "HIGH";
 
-  // 1. Create the session record
+  // 1. Update the session record to STOPPED
+  const { error: updateError } = await supabase
+    .from("camera_analysis_sessions")
+    .update({
+      status: "STOPPED",
+      stopped_at: terminatedAt,
+    })
+    .eq("session_id", sessionId);
+
+  if (updateError) return { error: updateError.message };
+
+  // 2. Insert summary biometric reading
+  const { error: readingError } = await supabase.from("biometric_readings").insert({
+    session_id: sessionId,
+    employee_profile_id: profile.profile_id,
+    captured_at: terminatedAt,
+    blink_rate: snap.blinkRate,
+    focus_score: snap.focus,
+    fatigue_score: snap.score,
+    overall_risk_score: snap.score,
+    risk_level: riskLevel,
+  });
+
+  return { error: readingError ? readingError.message : null };
+}
+
+/**
+ * Marks a RUNNING session as INTERRUPTED (e.g. page unload or camera error).
+ */
+export async function interruptSessionInDb(sessionId: string): Promise<void> {
+  await supabase
+    .from("camera_analysis_sessions")
+    .update({ status: "INTERRUPTED", stopped_at: new Date().toISOString() })
+    .eq("session_id", sessionId);
+}
+
+/**
+ * @deprecated Use startSessionInDb + stopSessionInDb instead.
+ * Kept for compatibility — creates a completed session in one shot.
+ */
+export async function saveSessionToDb(
+  snap: Omit<SessionSnapshot, "terminatedAt"> & { terminatedAt?: string }
+): Promise<{ error: string | null }> {
+  const profile = await resolveProfile();
+  if (!profile) return { error: "Not authenticated" };
+
+  const terminatedAt = snap.terminatedAt ?? new Date().toISOString();
+  const riskLevel = snap.level.toUpperCase() as "LOW" | "MODERATE" | "HIGH";
+
   const { data: session, error: sessionError } = await supabase
     .from("camera_analysis_sessions")
     .insert({
@@ -100,13 +177,13 @@ export async function saveSessionToDb(
       started_at: new Date(Date.now() - snap.durationSeconds * 1000).toISOString(),
       stopped_at: terminatedAt,
       status: "STOPPED",
+      model_version: "sentinelai-camera-v1",
     })
     .select("session_id")
     .single();
 
   if (sessionError) return { error: sessionError.message };
 
-  // 2. Insert one summary biometric reading
   const { error: readingError } = await supabase.from("biometric_readings").insert({
     session_id: session.session_id,
     employee_profile_id: profile.profile_id,

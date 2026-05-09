@@ -115,6 +115,25 @@ function CameraPage() {
 
   useEffect(() => { load(); }, [profile]);
 
+  // Real-time: refresh when any session in this company changes
+  useEffect(() => {
+    if (!profile?.company_id) return;
+    const channel = supabase
+      .channel("admin-camera-sessions")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "camera_analysis_sessions",
+          filter: `company_id=eq.${profile.company_id}`,
+        },
+        () => { load(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.company_id]);
+
   const filtered = sessions.filter((s) => {
     const q = search.toLowerCase();
     const matchSearch =

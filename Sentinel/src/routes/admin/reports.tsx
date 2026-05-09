@@ -52,39 +52,118 @@ const REPORTS: ReportDef[] = [
   },
 ];
 
-function buildPDF(title: string, subtitle: string, headers: string[], rows: string[][]): void {
+function drawShield(doc: jsPDF, cx: number, cy: number, sz: number) {
+  doc.setFillColor(30, 52, 100);
+  doc.roundedRect(cx - sz / 2, cy - sz * 0.58, sz, sz * 1.18, sz * 0.18, sz * 0.18, "F");
+  doc.setDrawColor(212, 175, 55);
+  doc.setLineWidth(sz * 0.1);
+  doc.line(cx - sz * 0.22, cy + sz * 0.05, cx - sz * 0.04, cy + sz * 0.27);
+  doc.line(cx - sz * 0.04, cy + sz * 0.27, cx + sz * 0.26, cy - sz * 0.16);
+}
+
+function buildPDF(
+  title: string,
+  companyName: string,
+  reportedBy: string,
+  headers: string[],
+  rows: string[][],
+): void {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const W = doc.internal.pageSize.getWidth();
+  const W = doc.internal.pageSize.getWidth();  // 297
+  const H = doc.internal.pageSize.getHeight(); // 210
+  const now = new Date();
 
-  // Header bar
+  // ── Header band ──────────────────────────────────────────────
   doc.setFillColor(10, 20, 50);
-  doc.rect(0, 0, W, 28, "F");
+  doc.rect(0, 0, W, 36, "F");
 
-  doc.setTextColor(212, 175, 55);
-  doc.setFontSize(16);
+  // Gold accent underline
+  doc.setFillColor(212, 175, 55);
+  doc.rect(0, 34, W, 2, "F");
+
+  // Shield logo
+  drawShield(doc, 18, 18, 11);
+
+  // Brand name
   doc.setFont("helvetica", "bold");
-  doc.text("SentinelAI Workforce", 14, 11);
-
+  doc.setFontSize(15);
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(12);
-  doc.text(title, 14, 20);
+  doc.text("SentinelAI", 30, 15);
 
-  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(180, 190, 210);
-  doc.text(`${subtitle} — Generated ${new Date().toLocaleString("en-ZA")}`, 14, 26);
+  doc.setFontSize(6.5);
+  doc.setTextColor(212, 175, 55);
+  doc.text("WORKFORCE SAFETY MONITORING", 30, 21);
 
+  // Divider
+  doc.setDrawColor(60, 80, 130);
+  doc.setLineWidth(0.4);
+  doc.line(96, 8, 96, 30);
+
+  // Company name (centre-left)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(255, 255, 255);
+  doc.text(companyName, 102, 15);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(220, 225, 235);
+  doc.text(`Prepared by: ${reportedBy}`, 102, 22);
+
+  // Report title (right-aligned)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(212, 175, 55);
+  doc.text(title.toUpperCase(), W - 12, 14, { align: "right" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(200, 210, 225);
+  doc.text(`Generated: ${now.toLocaleString("en-ZA")}`, W - 12, 21, { align: "right" });
+  doc.text("CONFIDENTIAL — INTERNAL USE ONLY", W - 12, 27, { align: "right" });
+
+  // ── Table ─────────────────────────────────────────────────────
   autoTable(doc, {
     head: [headers],
-    body: rows,
-    startY: 34,
-    styles: { fontSize: 9, cellPadding: 3 },
-    headStyles: { fillColor: [10, 20, 50], textColor: [212, 175, 55], fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [245, 247, 250] },
-    margin: { left: 14, right: 14 },
+    body: rows.length > 0 ? rows : [["No records found for this report."]],
+    startY: 42,
+    styles: {
+      fontSize: 8.5,
+      cellPadding: 3.5,
+      overflow: "linebreak",
+      textColor: [30, 40, 70],
+    },
+    headStyles: {
+      fillColor: [10, 20, 50],
+      textColor: [212, 175, 55],
+      fontStyle: "bold",
+      fontSize: 8,
+    },
+    alternateRowStyles: { fillColor: [246, 249, 253] },
+    tableLineColor: [210, 220, 235],
+    tableLineWidth: 0.2,
+    margin: { left: 12, right: 12 },
+    didDrawPage: (data: any) => {
+      const pageNum: number = data.pageNumber;
+      const totalPages: number = (doc as any).internal.getNumberOfPages();
+      doc.setFillColor(10, 20, 50);
+      doc.rect(0, H - 10, W, 10, "F");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.5);
+      doc.setTextColor(200, 210, 225);
+      doc.text(
+        `© ${now.getFullYear()} SentinelAI — ${companyName} — Confidential Safety Report`,
+        12,
+        H - 3.5,
+      );
+      doc.text(`Page ${pageNum} of ${totalPages}`, W - 12, H - 3.5, { align: "right" });
+    },
   });
 
-  doc.save(`${title.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.pdf`);
+  doc.save(
+    `${title.toLowerCase().replace(/\s+/g, "-")}-${companyName.replace(/\s+/g, "-").toLowerCase()}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.pdf`,
+  );
 }
 
 function ReportsPage() {
@@ -96,6 +175,15 @@ function ReportsPage() {
     setGenerating(reportId);
 
     try {
+      // Fetch company name once for branding
+      const { data: companyData } = await supabase
+        .from("companies")
+        .select("company_name")
+        .eq("company_id", profile.company_id)
+        .single();
+      const companyName = companyData?.company_name ?? "Your Company";
+      const reportedBy = `${profile.first_name} ${profile.last_name}`;
+
       if (reportId === "employees") {
         const { data, error } = await supabase
           .from("profiles")
@@ -123,9 +211,10 @@ function ReportsPage() {
 
         buildPDF(
           "Employee List",
-          profile.company_id,
-          ["Name", "Username", "Email", "Status", "Monitoring", "Department", "Job Title", "Monitoring Active", "Registered"],
-          rows
+          companyName,
+          reportedBy,
+          ["Name", "Username", "Email", "Status", "Monitoring", "Department", "Job Title", "Active", "Registered"],
+          rows,
         );
         toast.success("Employee report downloaded.");
       }
@@ -161,9 +250,10 @@ function ReportsPage() {
 
         buildPDF(
           "Camera Sessions",
-          profile.company_id,
+          companyName,
+          reportedBy,
           ["Employee", "Username", "Started", "Stopped", "Duration", "Status", "Stop Reason", "Model"],
-          rows
+          rows,
         );
         toast.success("Camera sessions report downloaded.");
       }
@@ -193,9 +283,10 @@ function ReportsPage() {
 
         buildPDF(
           "Risk Alerts",
-          profile.company_id,
+          companyName,
+          reportedBy,
           ["Employee", "Username", "Alert Type", "Risk Level", "Message", "Status", "Date"],
-          rows
+          rows,
         );
         toast.success("Alerts report downloaded.");
       }
@@ -223,9 +314,10 @@ function ReportsPage() {
 
         buildPDF(
           "Bug Reports",
-          profile.company_id,
+          companyName,
+          reportedBy,
           ["Reporter", "Username", "Title", "Priority", "Status", "Date"],
-          rows
+          rows,
         );
         toast.success("Bug reports downloaded.");
       }

@@ -8,7 +8,7 @@ import { useFaceDetection } from "@/hooks/useFaceDetection";
 import { useFatigueMonitor } from "@/hooks/useFatigueMonitor";
 import { fatigueAlertBus } from "@/lib/fatigue/alertBus";
 import { riskLabel } from "@/lib/fatigue/riskScore";
-import { saveSession, saveSessionToDb } from "@/lib/fatigue/sessionStore";
+import { saveSession, startSessionInDb, stopSessionInDb, interruptSessionInDb } from "@/lib/fatigue/sessionStore";
 import { Square, BarChart3, Brain, Zap, Activity, ShieldAlert, HeartCrack } from "lucide-react";
 
 export const Route = createFileRoute("/user/monitoring")({
@@ -24,6 +24,7 @@ function Monitoring() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const sessionStartRef = useRef<number>(Date.now());
+  const dbSessionIdRef = useRef<string | null>(null);
   const {
     cameraStatus,
     faceDetected,
@@ -47,7 +48,23 @@ function Monitoring() {
   useEffect(() => {
     sessionStartRef.current = Date.now();
     void startCamera();
-    return () => stopCamera();
+
+    // Create a RUNNING session in the DB so the admin sees it immediately
+    startSessionInDb().then(({ sessionId, error }) => {
+      if (sessionId) {
+        dbSessionIdRef.current = sessionId;
+      } else {
+        console.warn("[Sentinel] Could not create DB session:", error);
+      }
+    });
+
+    return () => {
+      stopCamera();
+      // If the user navigates away without terminating, mark as INTERRUPTED
+      if (dbSessionIdRef.current) {
+        void interruptSessionInDb(dbSessionIdRef.current);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -63,8 +80,16 @@ function Monitoring() {
       durationSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
     };
     saveSession(snap);
-    // Also persist to Supabase (async, fire-and-forget — dashboard will fetch it)
-    void saveSessionToDb(snap);
+
+    // Update the DB session to STOPPED with final biometric summary
+    const sessionId = dbSessionIdRef.current;
+    if (sessionId) {
+      dbSessionIdRef.current = null; // prevent the cleanup from also interrupting it
+      stopSessionInDb(sessionId, snap).then(({ error }) => {
+        if (error) console.warn("[Sentinel] Failed to stop session in DB:", error);
+      });
+    }
+
     stopCamera();
     toast.success("Session terminated — results saved to dashboard.");
     navigate({ to: "/user/dashboard" });
