@@ -65,14 +65,14 @@ function computeHiveRiskLevel(state: string): RiskLevel {
   return "low";
 }
 import { loadAlertsFromDb, type DbAlert } from "@/lib/fatigue/alertLog";
-
-const CURRENT_WORKER_ID = "WK-MARCUS-CHEN";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/user/home")({
   component: Home,
 });
 
 function Home() {
+  const { profile } = useAuth();
   const [monitoring, setMonitoring] = useState(false);
   const [recentAlerts, setRecentAlerts] = useState<DbAlert[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
@@ -85,7 +85,7 @@ function Home() {
       setAlertsLoading(false);
     });
   }, []);
-  const snap = workforce.workers[CURRENT_WORKER_ID];
+  const snap = workforce.workers[profile?.profile_id ?? ""];
   const liveScore = snap?.score ?? 0;
   const liveLevel = snap?.level ?? "low";
   const liveBlinkRate = snap ? Math.round(snap.blinkRate) : null;

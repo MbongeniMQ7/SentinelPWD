@@ -10,17 +10,19 @@ import { fatigueAlertBus } from "@/lib/fatigue/alertBus";
 import { riskLabel } from "@/lib/fatigue/riskScore";
 import { saveSession, startSessionInDb, stopSessionInDb, interruptSessionInDb } from "@/lib/fatigue/sessionStore";
 import { Square, BarChart3, Brain, Zap, Activity, ShieldAlert, HeartCrack } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
-export const Route = createFileRoute("/user/monitoring")({
-  component: Monitoring,
-});
-
-// Stable per-session worker identifier. In a real backend this would come
-// from auth; we synthesize one for the demo so manager dashboards can key on it.
-const CURRENT_WORKER_ID = "WK-MARCUS-CHEN";
-const CURRENT_WORKER_NAME = "Marcus Chen";
+export const Route = createFileRoute("/user/monitoring")(
+  {
+    component: Monitoring,
+  }
+);
 
 function Monitoring() {
+  const { profile } = useAuth();
+  const workerId = profile?.profile_id ?? "anonymous";
+  const workerName = profile ? `${profile.first_name} ${profile.last_name}` : "Unknown";
+
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const sessionStartRef = useRef<number>(Date.now());
@@ -38,8 +40,8 @@ function Monitoring() {
     startCamera,
     stopCamera,
   } = useFaceDetection(videoRef);
-
-  const fatigue = useFatigueMonitor({
+,
+    workerName({
     workerId: CURRENT_WORKER_ID,
     workerName: CURRENT_WORKER_NAME,
   });
@@ -116,7 +118,7 @@ function Monitoring() {
   // Surface worker alerts as on-screen toasts (Moderate+ level).
   useEffect(() => {
     const off = fatigueAlertBus.on("workerAlert", (p) => {
-      if (p.workerId !== CURRENT_WORKER_ID) return;
+      if (p.workerId !== workerId) return;
       if (p.level === "high") {
         toast.error(p.message, { description: `Score ${p.score}/100`, duration: 8000 });
       } else {

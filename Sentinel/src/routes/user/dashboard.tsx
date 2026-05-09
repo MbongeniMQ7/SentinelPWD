@@ -20,9 +20,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
-
-// Stable per-session worker ID (must match monitoring.tsx)
-const CURRENT_WORKER_ID = "WK-MARCUS-CHEN";
+import { useAuth } from "@/context/AuthContext";
 
 // Demo/baseline data shown when no live monitoring session is running
 const DEMO = {
@@ -160,8 +158,9 @@ function SubMetric({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function WorkerDashboard() {
+  const { profile } = useAuth();
   const workforce = useWorkforceStatus();
-  const live = workforce.workers[CURRENT_WORKER_ID];
+  const live = workforce.workers[profile?.profile_id ?? ""];
 
   // Load the last terminated session from sessionStorage (immediate after terminate)
   const [lastSession, setLastSession] = useState(() => loadSession());

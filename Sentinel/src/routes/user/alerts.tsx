@@ -12,18 +12,19 @@ import {
   type DbAlert,
 } from "@/lib/fatigue/alertLog";
 
-// Must match the ID used in monitoring.tsx so alerts are attributed correctly.
-const CURRENT_WORKER_ID = "WK-MARCUS-CHEN";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/user/alerts")({
   component: Alerts,
 });
 
 function Alerts() {
+  const { profile } = useAuth();
+  const workerId = profile?.profile_id ?? "";
   // Live in-memory alerts from the current session
   const alertLog = useAlertLog();
   const liveAlerts = alertLog.filter(
-    (a) => a.kind === "worker" && a.workerId === CURRENT_WORKER_ID && !a.acknowledged,
+    (a) => a.kind === "worker" && a.workerId === workerId && !a.acknowledged,
   );
   const liveHighAlerts = liveAlerts.filter((a) => a.level === "high");
   const liveModerateAlerts = liveAlerts.filter((a) => a.level === "moderate");
