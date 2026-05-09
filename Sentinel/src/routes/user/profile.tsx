@@ -2,11 +2,12 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppHeader } from "@/components/user/AppHeader";
 import { BottomNav } from "@/components/user/BottomNav";
 import { Cpu, Radio, Bell, Shield, RotateCcw, FileWarning, ChevronRight, LogOut, BadgeCheck, UserCircle2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/context/AuthContext";
 import { signOut, resetPassword } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/user/profile")({
   component: Profile,
@@ -23,6 +24,20 @@ function Profile() {
     : user?.email ?? "—";
   const jobTitle = (profile as any)?.employee_profiles?.job_title ?? (profile as any)?.employee_profiles?.department ?? "Sentinel Employee";
   const [avatarError, setAvatarError] = useState(false);
+  const [deviceSerial, setDeviceSerial] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profile?.profile_id) return;
+    supabase
+      .from("iot_wristbands")
+      .select("device_serial_number, status")
+      .eq("assigned_employee_profile_id", profile.profile_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.device_serial_number) setDeviceSerial(data.device_serial_number);
+      });
+  }, [profile?.profile_id]);
+
   const initials = displayName
     .split(" ")
     .slice(0, 2)
@@ -125,7 +140,7 @@ function Profile() {
           <div className="space-y-3">
             <div className="panel p-4">
               <div className="label-eyebrow">Device ID</div>
-              <div className="font-display text-2xl font-bold mt-1">HIVE-7721</div>
+              <div className="font-display text-2xl font-bold mt-1">{deviceSerial ?? "Not assigned"}</div>
               <Cpu className="h-4 w-4 text-muted-foreground mt-2" />
             </div>
             <div className="panel p-4">

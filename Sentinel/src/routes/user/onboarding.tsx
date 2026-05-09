@@ -36,7 +36,7 @@ function Onboarding() {
         <div className="mt-6 w-full rounded-2xl bg-secondary p-4 flex items-center justify-between">
           <div className="text-left">
             <div className="label-eyebrow">Device ID</div>
-            <div className="font-display font-bold text-lg tracking-wider">HIVE-7721</div>
+            <div className="font-display font-bold text-lg tracking-wider">SNT-WRISTBAND</div>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-semibold">
             <Check className="h-3.5 w-3.5 text-success" />
