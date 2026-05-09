@@ -83,7 +83,7 @@ export interface EmotionState {
   scores: Record<EmotionLabel, number>; // each in [0..1]
 }
 
-
+export interface FaceDetectionState {
   cameraStatus: CameraStatus;
   faceDetected: boolean;
   faceBox: NormalizedBox | null;
