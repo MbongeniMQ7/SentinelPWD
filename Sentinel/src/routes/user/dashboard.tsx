@@ -236,17 +236,24 @@ function WorkerDashboard() {
       <AppHeader battery="98% BLE" title="Fatigue Dashboard" />
 
       <main className="flex-1 px-8 py-6 space-y-5 overflow-y-auto w-full">
-        {/* Session status banner */}
+        {/* No-session empty state */}
         {source === "demo" && (
-          <div className="rounded-xl bg-warning-soft border border-warning/30 px-4 py-2.5 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-warning-foreground shrink-0" />
-            <p className="text-xs font-semibold text-warning-foreground">
-              No session data yet —{" "}
-              <Link to="/user/monitoring" className="underline underline-offset-2">
-                start monitoring
-              </Link>{" "}
-              for live scores
-            </p>
+          <div className="flex flex-col items-center text-center px-4 py-10 gap-6">
+            <div className="h-24 w-24 rounded-full bg-secondary flex items-center justify-center">
+              <Brain className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <div>
+              <h2 className="font-display text-2xl font-bold">No Session Data Yet</h2>
+              <p className="text-muted-foreground text-sm mt-2 max-w-xs mx-auto">
+                Start a monitoring session to see your fatigue score, trends, and full biometric breakdown.
+              </p>
+            </div>
+            <Link
+              to="/user/monitoring"
+              className="rounded-2xl btn-gold px-8 py-4 font-display font-bold text-base flex items-center gap-2"
+            >
+              <Play className="h-4 w-4 fill-current" /> Start Monitoring
+            </Link>
           </div>
         )}
 
@@ -296,27 +303,30 @@ function WorkerDashboard() {
         )}
 
         {/* ── Score Gauge ── */}
-        <div className="panel p-5 flex flex-col items-center">
-          <div className="label-eyebrow mb-4">Current Fatigue Score</div>
-          <div className="relative">
-            <GaugeRing score={score} level={level} />
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="font-display font-bold text-5xl leading-none">{score}</div>
-              <div className="text-xs text-muted-foreground font-semibold mt-1">/ 100</div>
-              <span
-                className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold ${cfg.bg} ${cfg.text}`}
-              >
+        {source !== "demo" && (
+          <div className="panel p-5 flex flex-col items-center">
+            <div className="label-eyebrow mb-4">Current Fatigue Score</div>
+            <div className="relative">
+              <GaugeRing score={score} level={level} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="font-display font-bold text-5xl leading-none">{score}</div>
+                <div className="text-xs text-muted-foreground font-semibold mt-1">/ 100</div>
                 <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: cfg.dot }}
-                />
-                {cfg.label}
-              </span>
+                  className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold ${cfg.bg} ${cfg.text}`}
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: cfg.dot }}
+                  />
+                  {cfg.label}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* ── Trend Over Time ── */}
+        {source !== "demo" && (
         <div className="panel p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -361,9 +371,11 @@ function WorkerDashboard() {
             </span>
           </div>
         </div>
+        )}
 
         {/* ── Biometric Breakdown ── */}
-        <div className="panel p-5">
+        {source !== "demo" && (
+          <div className="panel p-5">
           <div className="label-eyebrow mb-4">Biometric Breakdown</div>
           <div className="space-y-4">
             <SubMetric
@@ -402,7 +414,8 @@ function WorkerDashboard() {
               good={fearScore < 30}
             />
           </div>
-        </div>
+          </div>
+        )}
 
         {/* ── CTA ── */}
         <Link

@@ -1,18 +1,47 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/user/BrandLogo";
 import { AvatarBadge } from "@/components/user/AvatarBadge";
 import { HelpCircle, Paperclip, Headphones, Mail, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/user/support")({
   component: Support,
 });
 
 function Support() {
+  const { profile } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  type BugRow = {
+    bug_id: string;
+    title: string;
+    description: string;
+    bug_status: string;
+    priority: string;
+    created_at: string;
+  };
+  const [reports, setReports] = useState<BugRow[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!profile?.profile_id) return;
+    setReportsLoading(true);
+    supabase
+      .from("bug_reports")
+      .select("bug_id, title, description, bug_status, priority, created_at")
+      .eq("reported_by_profile_id", profile.profile_id)
+      .order("created_at", { ascending: false })
+      .limit(10)
+      .then(({ data }) => {
+        setReports((data as BugRow[]) ?? []);
+        setReportsLoading(false);
+      });
+  }, [profile?.profile_id]);
 
   async function handleSubmitBug(e: React.FormEvent) {
     e.preventDefault();
@@ -20,15 +49,35 @@ function Support() {
       toast.error("Please enter a title for your bug report.");
       return;
     }
+    if (!profile?.profile_id) {
+      toast.error("You must be signed in to submit a report.");
+      return;
+    }
     setSubmitting(true);
-    // Small delay so the user sees the loading state before the toast
-    await new Promise((r) => setTimeout(r, 600));
+    const { error } = await supabase.from("bug_reports").insert({
+      reported_by_profile_id: profile.profile_id,
+      company_id: profile.company_id ?? null,
+      title: title.trim(),
+      description: description.trim() || "No description provided.",
+    });
     setSubmitting(false);
+    if (error) {
+      toast.error("Failed to submit report", { description: error.message });
+      return;
+    }
     setTitle("");
     setDescription("");
     toast.success("Bug report submitted", {
       description: "Our team will review your report shortly. Thank you!",
     });
+    // Refresh list
+    supabase
+      .from("bug_reports")
+      .select("bug_id, title, description, bug_status, priority, created_at")
+      .eq("reported_by_profile_id", profile.profile_id)
+      .order("created_at", { ascending: false })
+      .limit(10)
+      .then(({ data }) => setReports((data as BugRow[]) ?? []));
   }
 
   return (
@@ -113,14 +162,43 @@ function Support() {
 
       <h3 className="mt-8 mb-4 flex items-center justify-between">
         <span className="font-display text-2xl font-bold">Recent Issues</span>
-        <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold">4 Active</span>
+        {(() => {
+          const openCount = reports.filter(r => r.bug_status === "OPEN" || r.bug_status === "IN_PROGRESS").length;
+          return openCount > 0 ? (
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold">{openCount} Active</span>
+          ) : null;
+        })()}
       </h3>
 
       <div className="space-y-3">
-        <Issue status="OPEN" statusBg="bg-gold-soft text-gold-foreground" time="2h ago" title="Wristband Sync Error" desc="Node-04 units are failing to heartbeat with the central hub..." />
-        <Issue status="OPEN" statusBg="bg-gold-soft text-gold-foreground" time="Yesterday" title="Fatigue Algorithm Delay" desc="Dashboard reporting 5-minute latency on fatigue score updates..." />
-        <Issue status="RESOLVED" statusBg="bg-secondary text-muted-foreground" time="Oct 12" title="Admin Password Reset" desc="Successfully restored access for the regional safety lead account." />
-        <Issue status="RESOLVED" statusBg="bg-secondary text-muted-foreground" time="Oct 10" title="UI Render Bug - Safari" desc="Heatmap alignment issues on mobile Safari browsers have been..." />
+        {reportsLoading ? (
+          [1, 2].map(n => <div key={n} className="panel h-16 animate-pulse bg-secondary/50 rounded-2xl" />)
+        ) : reports.length === 0 ? (
+          <div className="panel p-4 text-sm text-muted-foreground">No reports submitted yet.</div>
+        ) : (
+          reports.map(r => {
+            const isOpen = r.bug_status === "OPEN" || r.bug_status === "IN_PROGRESS";
+            const timeAgo = (() => {
+              const diff = Date.now() - new Date(r.created_at).getTime();
+              const mins = Math.floor(diff / 60000);
+              const hours = Math.floor(mins / 60);
+              const days = Math.floor(hours / 24);
+              if (days >= 1) return `${days}d ago`;
+              if (hours >= 1) return `${hours}h ago`;
+              return `${mins}m ago`;
+            })();
+            return (
+              <Issue
+                key={r.bug_id}
+                status={r.bug_status.replace("_", " ")}
+                statusBg={isOpen ? "bg-gold-soft text-gold-foreground" : "bg-secondary text-muted-foreground"}
+                time={timeAgo}
+                title={r.title}
+                desc={r.description}
+              />
+            );
+          })
+        )}
       </div>
 
       <button className="mt-5 w-full rounded-2xl border-2 border-dashed border-border py-4 text-sm font-bold">

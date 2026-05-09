@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/user/AppHeader";
 import { BottomNav } from "@/components/user/BottomNav";
@@ -22,6 +22,7 @@ const EMOTION_EMOJI: Record<EmotionLabel, string> = {
   NEUTRAL:   "😐",
 };
 import { useAuth } from "@/context/AuthContext";
+import { useHiveIot } from "@/hooks/useHiveIot";
 
 export const Route = createFileRoute("/user/monitoring")(
   {
@@ -57,6 +58,86 @@ function Monitoring() {
     workerId,
     workerName,
   });
+
+  // ── IoT wristband ──────────────────────────────────────────────────
+  const hive = useHiveIot({ interval: 2000 });
+
+  // Rolling BPM history (11 slots, normalized 0–1 across 40–180 BPM)
+  const BPM_SLOTS = 11;
+  const bpmHistRef = useRef<number[]>(Array(BPM_SLOTS).fill(0.1));
+  const [bpmHistory, setBpmHistory] = useState<number[]>(Array(BPM_SLOTS).fill(0.1));
+
+  useEffect(() => {
+    if (hive.data?.bpm == null) return;
+    const norm = Math.max(0.05, Math.min(1, (hive.data.bpm - 40) / 140));
+    bpmHistRef.current = [...bpmHistRef.current.slice(1), norm];
+    setBpmHistory([...bpmHistRef.current]);
+  }, [hive.data?.bpm]);
+
+  // Rolling fatigue-score history for the state chart
+  const scoreHistRef = useRef<number[]>(Array(BPM_SLOTS).fill(0.1));
+  const [scoreHistory, setScoreHistory] = useState<number[]>(Array(BPM_SLOTS).fill(0.1));
+
+  useEffect(() => {
+    const norm = Math.max(0.05, Math.min(1, fatigue.score / 100));
+    scoreHistRef.current = [...scoreHistRef.current.slice(1), norm];
+    setScoreHistory([...scoreHistRef.current]);
+  }, [fatigue.score]);
+
+  // ── Telemetry log ───────────────────────────────────────────────────
+  type TelEntry = { time: string; text: string; tag: string; tagColor: string };
+  const [telLog, setTelLog] = useState<TelEntry[]>([]);
+  const prevFaceRef = useRef(false);
+  const prevHiveStatusRef = useRef<string>("idle");
+  const prevLevelRef = useRef("low");
+
+  const addTel = useCallback((text: string, tag: string, tagColor: string) => {
+    const t = new Date().toLocaleTimeString("en-US", {
+      hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit",
+    });
+    setTelLog(prev => [{ time: t, text, tag, tagColor }, ...prev].slice(0, 5));
+  }, []);
+
+  // Seed initial event on mount
+  useEffect(() => {
+    addTel("Monitoring session initialized", "SYSTEM", "text-muted-foreground");
+  }, [addTel]);
+
+  useEffect(() => {
+    if (faceDetected !== prevFaceRef.current) {
+      prevFaceRef.current = faceDetected;
+      if (faceDetected)
+        addTel("Face acquired — biometric analysis active", "LOCKED", "bg-gold-soft text-gold-foreground");
+      else
+        addTel("Face lost — analysis suspended", "ALERT", "bg-danger-soft text-danger");
+    }
+  }, [faceDetected, addTel]);
+
+  useEffect(() => {
+    if (hive.status !== prevHiveStatusRef.current) {
+      prevHiveStatusRef.current = hive.status;
+      if (hive.status === "connected")
+        addTel(`IoT wristband connected — ${hive.data?.bpm ?? "—"} BPM`, "ACTIVE", "bg-gold-soft text-gold-foreground");
+      else if (hive.status === "error")
+        addTel("IoT wristband offline — camera-only mode active", "OFFLINE", "text-muted-foreground");
+    }
+  }, [hive.status, hive.data?.bpm, addTel]);
+
+  useEffect(() => {
+    if (fatigue.level !== prevLevelRef.current) {
+      prevLevelRef.current = fatigue.level;
+      const tagColorMap: Record<string, string> = {
+        high: "bg-danger-soft text-danger",
+        moderate: "bg-gold-soft text-gold-foreground",
+        low: "bg-success-soft text-success",
+      };
+      addTel(
+        `Fatigue level: ${fatigue.level.toUpperCase()} (score ${fatigue.score})`,
+        fatigue.level.toUpperCase(),
+        tagColorMap[fatigue.level] ?? "text-muted-foreground",
+      );
+    }
+  }, [fatigue.level, fatigue.score, addTel]);
 
   // Auto-start camera when the screen mounts.
   useEffect(() => {
@@ -167,49 +248,69 @@ function Monitoring() {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-display font-bold leading-tight">
-                Hive IoT Real-time<br />Stream
+                SentinelAI Real-time<br />Biometrics
               </h1>
-              <div className="label-eyebrow mt-2">Node ID: HV-CORE-09</div>
+              <div className="label-eyebrow mt-2">
+                Session: {profile?.profile_id?.slice(0, 8).toUpperCase() ?? "—"}
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-gold-foreground">
-              <span className="live-dot bg-gold" />
-              LIVE<br />SYNCING
+            <div className={`flex items-center gap-1.5 text-[10px] font-bold tracking-widest ${
+              hive.status === "connected" ? "text-gold-foreground" : "text-muted-foreground"
+            }`}>
+              <span className={`live-dot ${hive.status === "connected" ? "bg-gold" : "bg-muted-foreground"}`} />
+              {hive.status === "connected" ? <>LIVE<br />SYNCING</> : <>IOT<br />{hive.status.toUpperCase()}</>}
             </div>
           </div>
 
-          {/* Heart rate bars */}
+          {/* Heart rate — real from IoT wristband */}
           <div className="mt-5 rounded-2xl bg-secondary p-4">
             <div className="flex items-start justify-between">
               <div className="label-eyebrow">Heart Rate (BPM)</div>
-              <div className="font-display text-3xl font-bold text-gold/70">78</div>
+              <div className="font-display text-3xl font-bold text-gold/70">
+                {hive.data?.bpm ?? <span className="text-muted-foreground text-xl animate-pulse">—</span>}
+              </div>
             </div>
             <div className="mt-3 flex items-end justify-between h-20 gap-1.5">
-              {[0.55, 0.7, 0.45, 0.65, 0.85, 0.6, 0.55, 0.78, 0.95, 0.5, 0.4].map((h, i) => (
+              {bpmHistory.map((h, i) => (
                 <div
                   key={i}
-                  className="bar-col flex-1 rounded-sm"
+                  className="flex-1 rounded-sm transition-all duration-500"
                   style={{
-                    height: `${h * 100}%`,
-                    background: i === 8 ? "oklch(0.78 0.13 75)" : "oklch(0.86 0.12 88 / 0.6)",
-                    animationDelay: `${i * 40}ms`,
+                    height: `${Math.max(4, h * 100)}%`,
+                    background: i === bpmHistory.length - 1
+                      ? "oklch(0.78 0.13 75)"
+                      : "oklch(0.86 0.12 88 / 0.6)",
                   }}
                 />
               ))}
             </div>
           </div>
 
-          {/* Blood pressure */}
+          {/* Physiological state — real from IoT wristband */}
           <div className="mt-3 rounded-2xl bg-secondary p-4">
             <div className="flex items-start justify-between">
-              <div className="label-eyebrow">Blood Pressure (mmHg)</div>
-              <div className="font-display text-3xl font-bold">122/81</div>
+              <div className="label-eyebrow">Physiological State</div>
+              <div className={`font-display text-2xl font-bold ${
+                hive.data?.state === "PANIC" || hive.data?.state === "FATIGUE"
+                  ? "text-danger"
+                  : hive.data?.state === "TIRED"
+                    ? "text-warning-foreground"
+                    : hive.data?.state === "NORMAL"
+                      ? "text-success"
+                      : "text-muted-foreground"
+              }`}>
+                {hive.data?.state ?? <span className="animate-pulse">—</span>}
+              </div>
             </div>
             <div className="mt-3 flex items-end justify-between h-20 gap-1.5">
-              {[0.5, 0.7, 0.4, 0.65, 0.55, 0.45, 0.7, 0.55, 0.75, 0.65, 0.45].map((h, i) => (
+              {scoreHistory.map((h, i) => (
                 <div
                   key={i}
-                  className="flex-1 rounded-sm bg-navy/40"
-                  style={{ height: `${h * 100}%` }}
+                  className="flex-1 rounded-sm transition-all duration-700"
+                  style={{
+                    height: `${Math.max(4, h * 100)}%`,
+                    background: "oklch(0.55 0.05 260 / 0.45)",
+                  }}
                 />
               ))}
             </div>
@@ -382,10 +483,14 @@ function Monitoring() {
             </span>
             Event Telemetry
           </h2>
-          <div className="panel p-3 space-y-2 stagger">
-            <TelRow time="14:02:11" text="IoT Hub: Heart rate variance +/- 2 BPM" tag="STABLE" tagColor="bg-gold-soft text-gold-foreground" />
-            <TelRow time="14:01:54" text="BLE Signal strength reinforced" tag="NOMINAL" tagColor="text-muted-foreground" />
-            <TelRow time="13:59:22" text="Device Auth: Token v2 rotation success" tag="SYSTEM" tagColor="text-muted-foreground" />
+          <div className="panel p-3 space-y-2">
+            {telLog.length === 0 ? (
+              <div className="text-sm text-muted-foreground px-1 py-1">Awaiting events…</div>
+            ) : (
+              telLog.map((e, i) => (
+                <TelRow key={i} time={e.time} text={e.text} tag={e.tag} tagColor={e.tagColor} />
+              ))
+            )}
           </div>
         </div>
 
@@ -401,7 +506,7 @@ function Monitoring() {
             <MiniToggle on={false} />
           </div>
           <button className="mt-5 w-full rounded-2xl btn-gold py-3 text-sm font-bold tracking-wider">
-            RESET HIVE NODE
+            RESET SENTINEL NODE
           </button>
         </div>
       </main>

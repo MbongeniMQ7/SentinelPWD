@@ -209,12 +209,23 @@ function Home() {
           <div className="panel p-4">
             <Activity className="h-5 w-5 text-navy" />
             <div className="label-eyebrow mt-3">Blood Pressure</div>
-            <div className="font-display text-xl font-bold">120/80</div>
+            <div className={`font-display text-xl font-bold ${hive.data == null ? "text-muted-foreground" : ""}`}>
+              {hive.data != null ? "— mmHg" : "—"}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">Wristband: BPM only</div>
           </div>
           <div className="panel p-4">
             <Footprints className="h-5 w-5 text-gold-foreground" />
             <div className="label-eyebrow mt-3">Activity Level</div>
-            <div className="font-display text-xl font-bold">Moderate</div>
+            <div className={`font-display text-xl font-bold ${
+              hive.data?.state === "PANIC" || hive.data?.state === "FATIGUE" ? "text-danger" :
+              hive.data?.state === "TIRED" ? "text-warning-foreground" :
+              hive.data?.state === "NORMAL" ? "text-success" : "text-muted-foreground"
+            }`}>
+              {hive.data?.state === "PANIC" || hive.data?.state === "FATIGUE" ? "Critical" :
+               hive.data?.state === "TIRED" ? "Elevated" :
+               hive.data?.state === "NORMAL" ? "Normal" : "—"}
+            </div>
           </div>
         </div>
 
