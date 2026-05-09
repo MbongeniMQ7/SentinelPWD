@@ -3,7 +3,9 @@ import { AppShell } from "@/components/admin/layout/AppShell";
 import { TopBar } from "@/components/admin/layout/TopBar";
 import { StatusBadge } from "@/components/admin/sentinel/StatusBadge";
 import { useWorkforceStatus } from "@/hooks/useFatigueMonitor";
-import { useAlertLog } from "@/lib/fatigue/alertLog";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { useEffect, useState } from "react";
 import {
   Camera,
   AlertTriangle,
@@ -13,53 +15,6 @@ import {
   CheckCircle2,
   Minus,
 } from "lucide-react";
-
-// ─── Static demo baseline (overlaid with live registry, same as workforce.tsx) ─
-
-const DEMO_WORKERS = [
-  {
-    id: "SN-09822",
-    name: "Anders Miller",
-    score: 88,
-    level: "high" as const,
-    trend: [60, 65, 70, 72, 80, 85, 88],
-  },
-  {
-    id: "SN-11403",
-    name: "Sarah Jones",
-    score: 42,
-    level: "moderate" as const,
-    trend: [30, 35, 38, 40, 42, 40, 42],
-  },
-  {
-    id: "SN-99201",
-    name: "Lucia Rossi",
-    score: 92,
-    level: "high" as const,
-    trend: [70, 75, 80, 85, 88, 90, 92],
-  },
-  {
-    id: "SN-05221",
-    name: "Thabiso Ngwenya",
-    score: 12,
-    level: "low" as const,
-    trend: [20, 18, 15, 14, 12, 12, 12],
-  },
-  {
-    id: "SN-22109",
-    name: "Bradley James",
-    score: 8,
-    level: "low" as const,
-    trend: [15, 12, 10, 9, 8, 8, 8],
-  },
-  {
-    id: "SN-44501",
-    name: "Chen Wei",
-    score: 55,
-    level: "moderate" as const,
-    trend: [45, 48, 50, 52, 54, 55, 55],
-  },
-];
 
 // ─── Visual config ─────────────────────────────────────────────────────────────
 
@@ -113,25 +68,102 @@ type WorkerRow = {
 // ─── Page component ────────────────────────────────────────────────────────────
 
 function FatigueDashboard() {
+  const { profile } = useAuth();
   const workforce = useWorkforceStatus();
-  const alertLog = useAlertLog();
 
-  // Merge: live workers take precedence over demo rows with the same id
+  const [dbWorkers, setDbWorkers] = useState<WorkerRow[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!profile?.company_id) return;
+
+    async function fetchData() {
+      setLoading(true);
+
+      // 1. All employees in this company
+      const { data: employees } = await supabase
+        .from("profiles")
+        .select("profile_id, first_name, last_name")
+        .eq("company_id", profile!.company_id!)
+        .eq("role", "EMPLOYEE");
+
+      if (!employees?.length) {
+        setDbWorkers([]);
+        setLoading(false);
+        return;
+      }
+
+      const ids = employees.map((e) => e.profile_id);
+
+      // 2. Last 7 biometric readings per employee (for score + trend)
+      const { data: readings } = await supabase
+        .from("biometric_readings")
+        .select("employee_profile_id, fatigue_score, risk_level, captured_at")
+        .in("employee_profile_id", ids)
+        .order("captured_at", { ascending: false })
+        .limit(ids.length * 7);
+
+      // 3. Unacknowledged alerts count
+      const { count } = await supabase
+        .from("risk_alerts")
+        .select("alert_id", { count: "exact", head: true })
+        .eq("company_id", profile!.company_id!)
+        .eq("is_seen_by_manager", false);
+
+      setActiveAlerts(count ?? 0);
+
+      // 4. Group readings by employee
+      const byEmployee: Record<string, { fatigue_score: number | null; risk_level: string; captured_at: string }[]> = {};
+      for (const r of readings ?? []) {
+        if (!byEmployee[r.employee_profile_id]) byEmployee[r.employee_profile_id] = [];
+        byEmployee[r.employee_profile_id].push(r);
+      }
+
+      // 5. Build WorkerRow for each employee
+      const rows: WorkerRow[] = employees.map((emp) => {
+        const empReadings = byEmployee[emp.profile_id] ?? [];
+        const latest = empReadings[0];
+        const trend = empReadings
+          .slice(0, 7)
+          .reverse()
+          .map((r) => Math.round(Number(r.fatigue_score ?? 0)));
+        const rawLevel = latest?.risk_level ?? "LOW";
+        const level =
+          rawLevel === "HIGH" ? "high" : rawLevel === "MODERATE" ? "moderate" : "low";
+        return {
+          id: emp.profile_id,
+          name: `${emp.first_name} ${emp.last_name}`,
+          score: Math.round(Number(latest?.fatigue_score ?? 0)),
+          level,
+          trend,
+          live: false,
+        };
+      });
+
+      setDbWorkers(rows);
+      setLoading(false);
+    }
+
+    fetchData();
+  }, [profile?.company_id]);
+
+  // Merge: live WebSocket workers override DB rows with the same profile_id
   const liveWorkers = Object.values(workforce.workers);
   const liveIds = new Set(liveWorkers.map((w) => w.workerId));
-  const demoRows = DEMO_WORKERS.filter((w) => !liveIds.has(w.id));
+  const dbRows = dbWorkers.filter((w) => !liveIds.has(w.id));
 
   const allWorkers: WorkerRow[] = [
     ...liveWorkers.map((w) => ({
       id: w.workerId,
       name: w.workerName ?? w.workerId,
       score: w.score,
-      level: w.level,
+      level: w.level as "low" | "moderate" | "high",
       trend: w.trend ?? [],
       live: true,
     })),
-    ...demoRows.map((w) => ({ ...w, live: false })),
-  ].sort((a, b) => b.score - a.score); // highest fatigue first
+    ...dbRows,
+  ].sort((a, b) => b.score - a.score);
 
   const totalWorkers = allWorkers.length;
   const highCount = allWorkers.filter((w) => w.level === "high").length;
@@ -143,14 +175,32 @@ function FatigueDashboard() {
   const modPct = totalWorkers ? Math.round((modCount / totalWorkers) * 100) : 0;
   const lowPct = Math.max(0, 100 - highPct - modPct);
 
-  const recentAlerts = alertLog.filter(
-    (a) => !a.acknowledged && Date.now() - a.timestamp < 30 * 60_000,
-  ).length;
+  const recentAlerts = activeAlerts;
 
   const avgScore =
     totalWorkers > 0
       ? Math.round(allWorkers.reduce((sum, w) => sum + w.score, 0) / totalWorkers)
       : 0;
+
+  if (loading) {
+    return (
+      <AppShell>
+        <TopBar title="Fatigue Overview" showBell showAvatar />
+        <div className="px-5 pt-4 pb-28 space-y-4 animate-pulse">
+          <div className="h-6 w-48 rounded-lg bg-border" />
+          <div className="grid grid-cols-2 gap-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-surface rounded-2xl p-4 border border-border h-20" />
+            ))}
+          </div>
+          <div className="bg-surface rounded-2xl p-4 border border-border h-24" />
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-surface rounded-xl px-4 py-3 border border-border h-12" />
+          ))}
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
