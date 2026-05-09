@@ -9,7 +9,18 @@ import { useFatigueMonitor } from "@/hooks/useFatigueMonitor";
 import { fatigueAlertBus } from "@/lib/fatigue/alertBus";
 import { riskLabel } from "@/lib/fatigue/riskScore";
 import { saveSession, startSessionInDb, stopSessionInDb, interruptSessionInDb } from "@/lib/fatigue/sessionStore";
-import { Square, BarChart3, Brain, Zap, Activity, ShieldAlert, HeartCrack } from "lucide-react";
+import { Square, BarChart3, Brain, Zap, Activity, ShieldAlert } from "lucide-react";
+import type { EmotionLabel } from "@/hooks/useFaceDetection";
+
+const EMOTION_EMOJI: Record<EmotionLabel, string> = {
+  HAPPY:     "😊",
+  SAD:       "😢",
+  ANGRY:     "😠",
+  SURPRISED: "😮",
+  DISGUSTED: "🤢",
+  FEARFUL:   "😨",
+  NEUTRAL:   "😐",
+};
 import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/user/monitoring")(
@@ -36,6 +47,7 @@ function Monitoring() {
     eyeOpenness,
     headPose,
     fearScore: rawFearScore,
+    emotion,
     error,
     startCamera,
     stopCamera,
@@ -322,12 +334,43 @@ function Monitoring() {
               fatigue.level === 'high' ? 'text-danger' : fatigue.level === 'moderate' ? 'text-warning-foreground' : 'text-success'
             }`}>{riskLabel(fatigue.level)}</div>
           </div>
-          <div className="col-span-2 panel p-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-1.5">
-              <HeartCrack className="h-4 w-4 text-danger" />
-              <span className="text-[10px] font-bold tracking-widest text-muted-foreground">FEAR / DISTRESS</span>
-            </div>
-            <div className="font-display text-3xl font-bold">{fatigue.fearScore}<span className="text-sm text-muted-foreground">/100</span></div>
+          <div className="col-span-2 panel p-4">
+            <div className="text-[10px] font-bold tracking-widest text-muted-foreground mb-3">EMOTION ANALYSIS</div>
+            {emotion ? (
+              <>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">{EMOTION_EMOJI[emotion.dominant]}</span>
+                  <div>
+                    <div className="font-display text-xl font-bold leading-none">{emotion.dominant}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">Dominant expression</div>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  {(Object.keys(emotion.scores) as EmotionLabel[]).map((label) => {
+                    const pct = Math.round(emotion!.scores[label] * 100);
+                    const isDominant = label === emotion!.dominant;
+                    return (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className="text-sm w-5">{EMOTION_EMOJI[label]}</span>
+                        <span className="text-[10px] font-bold w-20 text-muted-foreground">{label}</span>
+                        <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{
+                              width: `${pct}%`,
+                              background: isDominant ? "oklch(0.78 0.13 75)" : "oklch(0.55 0.05 260 / 0.6)",
+                            }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold w-8 text-right">{pct}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-muted-foreground">No face detected</div>
+            )}
           </div>
         </div>
 

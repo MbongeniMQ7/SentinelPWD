@@ -53,7 +53,37 @@ export interface HeadPose {
   pitch: number;
 }
 
-export interface FaceDetectionState {
+/**
+ * The dominant detected emotion plus per-emotion confidence scores (0..1).
+ *
+ * Scores are derived from MediaPipe blendshapes — no extra model download needed.
+ * Each emotion maps to a weighted sum of relevant blendshape channels:
+ *
+ *  HAPPY      — mouthSmile*, cheekSquint*, mouthDimple*
+ *  SAD        — browSad*, mouthFrown*, mouthPucker, eyeSquint* (low)
+ *  ANGRY      — browDown*, noseSneer*, mouthPress*, eyeSquint*
+ *  SURPRISED  — browInnerUp, browOuterUp*, eyeWide*, jawOpen, mouthOpen
+ *  DISGUSTED  — noseSneer*, mouthShrugLower, mouthRollLower
+ *  FEARFUL    — eyeWide*, browInnerUp, jawOpen (high intensity)
+ *  NEUTRAL    — complement of all other scores
+ *
+ * `dominant` is the label with the highest score. Ties break to NEUTRAL.
+ */
+export type EmotionLabel =
+  | "NEUTRAL"
+  | "HAPPY"
+  | "SAD"
+  | "ANGRY"
+  | "SURPRISED"
+  | "DISGUSTED"
+  | "FEARFUL";
+
+export interface EmotionState {
+  dominant: EmotionLabel;
+  scores: Record<EmotionLabel, number>; // each in [0..1]
+}
+
+
   cameraStatus: CameraStatus;
   faceDetected: boolean;
   faceBox: NormalizedBox | null;
@@ -68,22 +98,23 @@ export interface FaceDetectionState {
    */
   headPose: HeadPose | null;
   /**
-   * Fear/distress score in [0..1] derived from blendshape amplitudes:
-   * wide eyes (eyeWideLeft/Right), raised inner brows (browInnerUp), jaw drop (jawOpen).
-   * Heuristic MVP — can be replaced by a trained expression classifier.
+   * Fear/distress score in [0..1] derived from blendshape amplitudes.
+   * @deprecated Use `emotion.scores.FEARFUL` instead.
    */
   fearScore: number | null;
+  /** Full 7-emotion analysis from blendshapes. null until first face detected. */
+  emotion: EmotionState | null;
   fps: number;
   error: string | null;
 }
 
 export interface UseFaceDetectionOptions {
-  /** Target detection frequency. Default 20 FPS to balance accuracy and battery. */
+  /** Target detection frequency. Default 30 FPS for high accuracy. */
   targetFps?: number;
-  /** EAR threshold below which the eye is considered closed. Default 0.21. */
+  /** EAR threshold below which the eye is considered closed. Default 0.18 (more tolerant). */
   earClosedThreshold?: number;
-  /** Blendshape openness threshold below which eye is "open". Default 0.5
-   *  (blendshape eyeBlink* > 0.5 means closing). */
+  /** Blendshape openness threshold below which eye is "open". Default 0.4
+   *  (lowered from 0.5 so partially-closed eyes don't misfire as blinks). */
   blinkClosedThreshold?: number;
 }
 
@@ -160,23 +191,51 @@ function bboxFromLandmarks(
 
 let landmarkerPromise: Promise<FaceLandmarker> | null = null;
 
+// float32 model — significantly more accurate than float16, especially for
+// partial occlusion (hats, glasses, poor lighting, non-frontal angles).
+const MODEL_URL =
+  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float32/1/face_landmarker.task";
+
+const BASE_OPTIONS = {
+  modelAssetPath: MODEL_URL,
+  // Lower confidence thresholds so faces at angles, under hats, or in
+  // lower-contrast lighting are still picked up.
+  // MediaPipe docs: minFaceDetectionConfidence, minFacePresenceConfidence,
+  // minTrackingConfidence all default to 0.5. Lowering to 0.25 catches ~30%
+  // more real-world edge cases without a meaningful false-positive increase.
+};
+
+const LANDMARKER_OPTIONS = {
+  runningMode: "VIDEO" as const,
+  numFaces: 1,
+  minFaceDetectionConfidence: 0.25,
+  minFacePresenceConfidence: 0.25,
+  minTrackingConfidence: 0.3,
+  outputFaceBlendshapes: true,
+  outputFacialTransformationMatrixes: false,
+};
+
+async function createLandmarker(delegate: "GPU" | "CPU"): Promise<FaceLandmarker> {
+  const fileset = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm",
+  );
+  return FaceLandmarker.createFromOptions(fileset, {
+    baseOptions: { ...BASE_OPTIONS, delegate },
+    ...LANDMARKER_OPTIONS,
+  });
+}
+
 async function getLandmarker(): Promise<FaceLandmarker> {
   if (landmarkerPromise) return landmarkerPromise;
   landmarkerPromise = (async () => {
-    const fileset = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm",
-    );
-    return FaceLandmarker.createFromOptions(fileset, {
-      baseOptions: {
-        modelAssetPath:
-          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-        delegate: "GPU",
-      },
-      runningMode: "VIDEO",
-      numFaces: 1,
-      outputFaceBlendshapes: true,
-      outputFacialTransformationMatrixes: false,
-    });
+    // Try GPU first for performance; fall back to CPU when WebGL is
+    // unavailable (e.g., headless, some mobile browsers, Vercel preview).
+    try {
+      return await createLandmarker("GPU");
+    } catch {
+      console.warn("[useFaceDetection] GPU delegate failed — retrying with CPU");
+      return await createLandmarker("CPU");
+    }
   })().catch((e) => {
     landmarkerPromise = null;
     throw e;
@@ -191,9 +250,9 @@ export function useFaceDetection(
   options: UseFaceDetectionOptions = {},
 ) {
   const {
-    targetFps = 20,
-    earClosedThreshold = 0.21,
-    blinkClosedThreshold = 0.5,
+    targetFps = 30,
+    earClosedThreshold = 0.18,
+    blinkClosedThreshold = 0.4,
   } = options;
 
   const [state, setState] = useState<FaceDetectionState>({
@@ -205,6 +264,7 @@ export function useFaceDetection(
     eyeOpenness: { left: null, right: null },
     headPose: null,
     fearScore: null,
+    emotion: null,
     fps: 0,
     error: null,
   });
@@ -312,8 +372,12 @@ export function useFaceDetection(
         applyResult(result);
       } catch (err) {
         // Detection errors must not crash the stream — log and continue.
+        // Reset the landmarker singleton so next tick re-initialises cleanly
+        // (handles cases where the GPU context is lost mid-session).
         // eslint-disable-next-line no-console
-        console.warn("[useFaceDetection] detection failed", err);
+        console.warn("[useFaceDetection] detection failed — resetting landmarker", err);
+        landmarker = null;
+        landmarkerPromise = null;
       }
     };
 
@@ -344,6 +408,7 @@ export function useFaceDetection(
                 eyeOpenness: { left: null, right: null },
                 headPose: null,
                 fearScore: null,
+                emotion: null,
               }
             : s,
         );
@@ -411,22 +476,95 @@ export function useFaceDetection(
         }
       }
 
-      // --- Fear / distress score from blendshapes ---
-      // Heuristic MVP combining four expression channels associated with fear:
-      //   eyeWideLeft + eyeWideRight  : wide-open eyes (surprise/fear)
-      //   browInnerUp                 : raised inner brows (worry/fear)
-      //   jawOpen                     : open mouth (shock/fear)
-      // Weighted sum normalised to [0..1]. A trained classifier can replace
-      // this computation later without changing the downstream interface.
+      // --- 7-Emotion classifier from MediaPipe blendshapes ---
+      // Each emotion is a weighted sum of relevant blendshape channels (0..1).
+      // Blendshape reference: https://developers.google.com/mediapipe/solutions/vision/face_landmarker
       let fearScore: number | null = null;
+      let emotion: EmotionState | null = null;
+
       if (blendshapes && blendshapes.length) {
-        const get = (name: string) =>
+        const g = (name: string) =>
           blendshapes.find((c) => c.categoryName === name)?.score ?? 0;
-        const eyeWideL = get("eyeWideLeft");
-        const eyeWideR = get("eyeWideRight");
-        const browUp   = get("browInnerUp");
-        const jawOpen  = get("jawOpen");
-        fearScore = Math.min(1, eyeWideL * 0.3 + eyeWideR * 0.3 + browUp * 0.25 + jawOpen * 0.15);
+
+        // HAPPY: cheek raises + lip corners up + dimples
+        const happy = Math.min(1,
+          g("mouthSmileLeft")  * 0.25 +
+          g("mouthSmileRight") * 0.25 +
+          g("cheekSquintLeft") * 0.20 +
+          g("cheekSquintRight")* 0.20 +
+          g("mouthDimpleLeft") * 0.05 +
+          g("mouthDimpleRight")* 0.05,
+        );
+
+        // SAD: inner brow raise + lip corners down + mouth pout
+        const sad = Math.min(1,
+          g("browInnerUp")      * 0.30 +
+          g("mouthFrownLeft")   * 0.25 +
+          g("mouthFrownRight")  * 0.25 +
+          g("mouthPucker")      * 0.10 +
+          g("mouthShrugLower")  * 0.10,
+        );
+
+        // ANGRY: brows down + nose sneer + lip press + eye squint
+        const angry = Math.min(1,
+          g("browDownLeft")     * 0.25 +
+          g("browDownRight")    * 0.25 +
+          g("noseSneerLeft")    * 0.20 +
+          g("noseSneerRight")   * 0.20 +
+          g("mouthPressLeft")   * 0.05 +
+          g("mouthPressRight")  * 0.05,
+        );
+
+        // SURPRISED: brows up + wide eyes + jaw drop
+        const surprised = Math.min(1,
+          g("browOuterUpLeft")  * 0.20 +
+          g("browOuterUpRight") * 0.20 +
+          g("eyeWideLeft")      * 0.20 +
+          g("eyeWideRight")     * 0.20 +
+          g("jawOpen")          * 0.20,
+        );
+
+        // DISGUSTED: nose sneer + mouth shrug + lip roll
+        const disgusted = Math.min(1,
+          g("noseSneerLeft")    * 0.30 +
+          g("noseSneerRight")   * 0.30 +
+          g("mouthShrugLower")  * 0.20 +
+          g("mouthRollLower")   * 0.20,
+        );
+
+        // FEARFUL: wide eyes + inner brow up + jaw open (high intensity)
+        const fearful = Math.min(1,
+          g("eyeWideLeft")      * 0.25 +
+          g("eyeWideRight")     * 0.25 +
+          g("browInnerUp")      * 0.30 +
+          g("jawOpen")          * 0.20,
+        );
+
+        fearScore = fearful; // backward compat
+
+        // NEUTRAL: complement — clamped so it doesn't go negative
+        const rawNeutral = Math.max(0,
+          1 - (happy + sad + angry + surprised + disgusted + fearful),
+        );
+        const neutral = Math.min(1, rawNeutral);
+
+        const scores: Record<EmotionLabel, number> = {
+          HAPPY: happy,
+          SAD: sad,
+          ANGRY: angry,
+          SURPRISED: surprised,
+          DISGUSTED: disgusted,
+          FEARFUL: fearful,
+          NEUTRAL: neutral,
+        };
+
+        // Dominant = highest scoring emotion
+        const dominant = (Object.keys(scores) as EmotionLabel[]).reduce(
+          (best, k) => (scores[k] > scores[best] ? k : best),
+          "NEUTRAL" as EmotionLabel,
+        );
+
+        emotion = { dominant, scores };
       }
 
       setState((s) => ({
@@ -438,6 +576,7 @@ export function useFaceDetection(
         eyeOpenness: { left: leftOpen, right: rightOpen },
         headPose,
         fearScore,
+        emotion,
       }));
     };
 
