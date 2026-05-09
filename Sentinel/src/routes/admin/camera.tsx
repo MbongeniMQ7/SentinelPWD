@@ -146,20 +146,13 @@ function CameraPage() {
 
   return (
     <AppShell>
-      <TopBar />
+      <TopBar title="Camera Analysis" subtitle="Live and historical session feed" showBell />
       <div className="px-5 pt-4 pb-24">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[11px] font-extrabold tracking-wider text-ink-soft uppercase">
-              Safety &amp; Monitoring
-            </p>
-            <h1 className="mt-1 text-[34px] leading-[1.05] font-extrabold text-ink">
-              Camera Analysis
-            </h1>
-          </div>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-[11px] font-extrabold tracking-wider text-ink-soft uppercase">Safety &amp; Monitoring</p>
           <button
             onClick={load}
-            className="mt-3 h-10 w-10 rounded-xl bg-muted flex items-center justify-center"
+            className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center hover:bg-border transition-colors"
             aria-label="Refresh"
           >
             <RefreshCw className="h-4 w-4 text-ink" />

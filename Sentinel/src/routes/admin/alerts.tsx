@@ -56,16 +56,14 @@ function AlertsPage() {
 
   return (
     <AppShell>
-      <TopBar />
-      <div className="px-5 pt-4">
-        <h1 className="text-[34px] leading-[1.05] font-extrabold text-ink">Active Alerts</h1>
-        <p className="mt-3 text-[13px] text-ink-soft">Real-time surveillance and system diagnostics ledger.</p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          {(["ALL", "FATIGUE", "FOCUS", "HARDWARE"] as const).map((f) => (
-            <Chip key={f} active={filter === f} onClick={() => setFilter(f)}>{f}</Chip>
-          ))}
+      <TopBar title="Active Alerts" subtitle="Real-time surveillance and diagnostics ledger" showBell />
+        <div className="px-5 pt-4">
+          <div className="flex flex-wrap gap-2 mt-2">
+            {(["ALL", "FATIGUE", "FOCUS", "HARDWARE"] as const).map((f) => (
+              <Chip key={f} active={filter === f} onClick={() => setFilter(f)}>{f}</Chip>
+            ))}
+          </div>
         </div>
-      </div>
 
       <div className="px-5 mt-5 space-y-4">
         {liveAlerts.map((a) => (
@@ -173,28 +171,6 @@ function AlertsPage() {
             </div>
           ))
         )}
-
-        <section className="relative rounded-2xl p-5 text-primary-foreground overflow-hidden" style={{ background: "linear-gradient(135deg, oklch(0.4 0.04 260), oklch(0.5 0.05 260))" }}>
-          <h3 className="text-[20px] font-extrabold">Shift Overview</h3>
-          <p className="mt-2 text-[13px] text-primary-foreground/80">System fatigue metrics are trending 12% higher than seasonal averages for the North Wing.</p>
-          <div className="mt-5 grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-[34px] font-extrabold text-warning leading-none">84%</p>
-              <p className="mt-1 text-[10px] font-extrabold tracking-wider uppercase text-primary-foreground/70">Avg Focus</p>
-            </div>
-            <div>
-              <p className="text-[34px] font-extrabold leading-none">04</p>
-              <p className="mt-1 text-[10px] font-extrabold tracking-wider uppercase text-primary-foreground/70">Open Tickets</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-surface-muted rounded-2xl p-5 shadow-sm">
-          <div className="h-9 w-9 rounded-lg bg-surface flex items-center justify-center"><BarChart3 className="h-4 w-4 text-ink" /></div>
-          <h3 className="mt-3 text-[18px] font-extrabold text-ink">System Pulse</h3>
-          <p className="mt-1 text-[13px] text-ink-soft">Hardware connectivity is currently at 99.8% nominal performance.</p>
-          <div className="mt-3 h-1 rounded-full bg-primary w-full" />
-        </section>
 
         <button
           onClick={() => toast.success("Manual alert sent to all on-shift supervisors")}

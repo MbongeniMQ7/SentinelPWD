@@ -82,11 +82,8 @@ function WorkforcePage() {
 
   return (
     <AppShell>
-      <TopBar title="Workforce Monitoring" showBell />
+      <TopBar title="Workforce" subtitle="Live personnel surveillance grid" showBell showAvatar />
       <div className="px-5 pt-4">
-        <p className="text-[11px] font-extrabold tracking-[0.18em] text-ink-soft uppercase">Active Surveillance</p>
-        <h1 className="text-[34px] leading-[1.05] font-extrabold text-ink mt-1">Live Personnel Grid</h1>
-
         <div className="mt-5 flex flex-wrap gap-2">
           {(["HIGH RISK", "DISCONNECTED", "BIOMETRIC ALERTS"] as const).map((f) => (
             <Chip key={f} active={filter === f} onClick={() => setFilter(f)}>{f}</Chip>
@@ -111,7 +108,7 @@ function WorkforcePage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-extrabold text-ink">{w.workerName ?? w.workerId}</p>
-                <p className="text-[12px] text-ink-soft">ID: {w.workerId} â€¢ LIVE</p>
+                <p className="text-[12px] text-ink-soft">ID: {w.workerId} • LIVE</p>
               </div>
               <StatusBadge variant={w.level === "high" ? "critical" : w.level === "moderate" ? "warning" : "info"}>
                 {riskLabel(w.level)}
@@ -145,9 +142,9 @@ function WorkforcePage() {
                 <span
                   className={`h-2 w-2 rounded-full ${w.level === "high" ? "bg-critical" : w.level === "moderate" ? "bg-warning" : "bg-success"}`}
                 />
-                <span className="text-[11px] font-extrabold tracking-wider text-ink uppercase">
-                  Status: BPM {Math.round(w.blinkRate)} â€¢ PERCLOS {Math.round(w.eyeClosure * 100)}%
-                </span>
+                  <span className="text-[11px] font-extrabold tracking-wider text-ink uppercase">
+                      Status: BPM {Math.round(w.blinkRate)} • PERCLOS {Math.round(w.eyeClosure * 100)}%
+                    </span>
               </div>
               <button
                 onClick={() => toast(`${w.workerName ?? w.workerId}: live session active`)}
@@ -185,7 +182,7 @@ function WorkforcePage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[15px] font-extrabold text-ink">{name}</p>
                     <p className="text-[12px] text-ink-soft">
-                      {ep?.job_title ?? "Employee"}{ep?.department ? ` â€¢ ${ep.department}` : ""}
+                      {ep?.job_title ?? "Employee"}{ep?.department ? ` • ${ep.department}` : ""}
                     </p>
                   </div>
                   <StatusBadge variant={emp.status === "ACTIVE" ? "info" : "warning"}>

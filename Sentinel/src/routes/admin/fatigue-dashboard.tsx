@@ -216,7 +216,7 @@ function FatigueDashboard() {
             Workforce Condition
           </h1>
           <p className="mt-1 text-[13px] text-ink-soft">
-            Live fatigue scores and risk levels across all active workers.
+            {loading ? "Fetching employee data…" : `Showing ${totalWorkers} employee${totalWorkers !== 1 ? "s" : ""} — live data refreshes automatically.`}
           </p>
         </div>
 
@@ -389,13 +389,14 @@ function HighRiskCard({ worker }: { worker: WorkerRow }) {
           <div className="flex items-start justify-between">
             <div>
               <div className="font-bold text-ink text-sm leading-tight">{worker.name}</div>
-              <div className="text-[11px] text-ink-soft mt-0.5">
-                {worker.id}
-                {worker.live && (
-                  <span className="ml-1.5 inline-flex items-center gap-1">
+              <div className="text-[11px] text-ink-soft mt-0.5 flex items-center gap-1.5">
+                {worker.live ? (
+                  <span className="inline-flex items-center gap-1 text-success font-bold">
                     <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-                    LIVE
+                    LIVE MONITORING
                   </span>
+                ) : (
+                  <span>Last reading from database</span>
                 )}
               </div>
             </div>
@@ -461,7 +462,9 @@ function WorkerListRow({ worker }: { worker: WorkerRow }) {
             <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse shrink-0" />
           )}
         </div>
-        <div className="text-[11px] text-ink-soft">{worker.id}</div>
+        <div className="text-[11px] text-ink-soft">
+          {worker.live ? "● LIVE" : worker.id.length > 20 ? worker.id.slice(0, 8) + "…" : worker.id}
+        </div>
       </div>
 
       {/* Score bar */}
