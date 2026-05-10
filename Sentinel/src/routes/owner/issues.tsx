@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/owner/AppShell";
 import { TopBar } from "@/components/owner/TopBar";
 import { Search, AlertTriangle } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import type { BugPriority, BugStatus } from "@/lib/database.types";
 
@@ -42,6 +43,7 @@ const fmtTime = (iso: string) => {
 };
 
 const Issues = () => {
+  const { profile } = useAuth();
   const [bugs, setBugs] = useState<BugReport[]>([]);
   const [counts, setCounts] = useState<BugCounts>({ high: 0, standard: 0, resolved24h: 0 });
   const [search, setSearch] = useState("");
@@ -96,16 +98,38 @@ const Issues = () => {
   });
 
   async function handleResolve(bugId: string) {
+    if (!profile?.profile_id) {
+      toast.error("Unable to identify the current owner account.");
+      return;
+    }
+
+    const targetBug = bugs.find((bug) => bug.bug_id === bugId);
+    const resolvedAt = new Date().toISOString();
     const { error } = await supabase
       .from("bug_reports")
-      .update({ bug_status: "RESOLVED", resolved_at: new Date().toISOString() })
+      .update({
+        bug_status: "RESOLVED",
+        resolved_at: resolvedAt,
+        resolved_by_profile_id: profile.profile_id,
+      })
       .eq("bug_id", bugId);
     if (error) {
       toast.error("Failed to resolve bug report");
     } else {
       toast.success("Bug report marked as resolved");
       setBugs((prev) => prev.filter((b) => b.bug_id !== bugId));
-      setCounts((c) => ({ ...c, high: Math.max(0, c.high - 1), resolved24h: c.resolved24h + 1 }));
+      setCounts((current) => {
+        if (!targetBug) {
+          return { ...current, resolved24h: current.resolved24h + 1 };
+        }
+
+        const isHighPriority = targetBug.priority === "HIGH" || targetBug.priority === "URGENT";
+        return {
+          high: isHighPriority ? Math.max(0, current.high - 1) : current.high,
+          standard: isHighPriority ? current.standard : Math.max(0, current.standard - 1),
+          resolved24h: current.resolved24h + 1,
+        };
+      });
     }
   }
 

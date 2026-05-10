@@ -24,7 +24,13 @@ interface BugRow {
   description: string;
   bug_status: BugStatus;
   priority: BugPriority;
+  resolved_at: string | null;
   created_at: string;
+  reporter: {
+    first_name: string;
+    last_name: string;
+    username: string;
+  } | null;
 }
 
 const PRIORITY_STYLE: Record<BugPriority, string> = {
@@ -47,22 +53,77 @@ function SupportPage() {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<BugPriority>("NORMAL");
   const [loading, setLoading] = useState(false);
+  const [resolvingBugId, setResolvingBugId] = useState<string | null>(null);
   const [bugs, setBugs] = useState<BugRow[]>([]);
   const [bugsLoading, setBugsLoading] = useState(true);
 
   async function loadBugs() {
-    if (!profile?.profile_id) return;
-    const { data } = await supabase
+    if (!profile?.profile_id) {
+      setBugs([]);
+      setBugsLoading(false);
+      return;
+    }
+
+    setBugsLoading(true);
+
+    const query = supabase
       .from("bug_reports")
-      .select("bug_id, title, description, bug_status, priority, created_at")
-      .eq("reported_by_profile_id", profile.profile_id)
+      .select(
+        `bug_id, title, description, bug_status, priority, resolved_at, created_at,
+         reporter:profiles!bug_reports_reported_by_profile_id_fkey(first_name, last_name, username)`
+      )
       .order("created_at", { ascending: false })
       .limit(50);
-    setBugs((data as BugRow[]) ?? []);
+
+    const scopedQuery = profile.company_id
+      ? query.eq("company_id", profile.company_id)
+      : query.eq("reported_by_profile_id", profile.profile_id);
+
+    const { data, error } = await scopedQuery;
+    if (error) {
+      toast.error("Failed to load bug reports.");
+      setBugs([]);
+    } else {
+      setBugs((data as BugRow[]) ?? []);
+    }
     setBugsLoading(false);
   }
 
   useEffect(() => { loadBugs(); }, [profile]);
+
+  async function handleResolve(bugId: string) {
+    if (!profile?.profile_id) {
+      toast.error("Not authenticated.");
+      return;
+    }
+
+    setResolvingBugId(bugId);
+    const resolvedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from("bug_reports")
+      .update({
+        bug_status: "RESOLVED",
+        resolved_at: resolvedAt,
+        resolved_by_profile_id: profile.profile_id,
+      })
+      .eq("bug_id", bugId);
+
+    setResolvingBugId(null);
+
+    if (error) {
+      toast.error("Failed to resolve bug report.");
+      return;
+    }
+
+    setBugs((current) =>
+      current.map((bug) =>
+        bug.bug_id === bugId
+          ? { ...bug, bug_status: "RESOLVED", resolved_at: resolvedAt }
+          : bug,
+      ),
+    );
+    toast.success("Bug report marked as resolved.");
+  }
 
   const submit = async () => {
     if (!title.trim()) { toast.error("Title is required."); return; }
@@ -98,7 +159,7 @@ function SupportPage() {
         </p>
         <h1 className="mt-1 text-[34px] leading-[1.05] font-extrabold text-ink">Bug Report</h1>
         <p className="mt-2 text-[13px] text-ink-soft">
-          Report an issue to the SentinelAI team. We'll respond as soon as possible.
+          Report an issue to the SentinelAI team and review submitted reports below.
         </p>
 
         {/* Submit Form */}
@@ -164,7 +225,7 @@ function SupportPage() {
         {/* Previous reports */}
         <div className="mt-6">
           <p className="text-[11px] font-extrabold tracking-wider text-ink-soft uppercase mb-3">
-            YOUR PREVIOUS REPORTS
+            RECENT REPORTS
           </p>
           {bugsLoading ? (
             <p className="text-[13px] text-ink-soft text-center py-8">Loading…</p>
@@ -188,6 +249,11 @@ function SupportPage() {
                     </span>
                   </div>
                   <p className="text-[12px] text-ink-soft mt-1 line-clamp-2">{b.description}</p>
+                  {b.reporter && (
+                    <p className="text-[11px] text-ink-soft mt-2">
+                      Reported by {b.reporter.first_name} {b.reporter.last_name} ({b.reporter.username})
+                    </p>
+                  )}
                   <div className="flex items-center justify-between mt-3">
                     <span
                       className={`text-[12px] font-extrabold tracking-wider uppercase ${STATUS_STYLE[b.bug_status]}`}
@@ -195,9 +261,22 @@ function SupportPage() {
                       {b.bug_status.replace("_", " ")}
                     </span>
                     <span className="text-[11px] text-ink-soft">
-                      {new Date(b.created_at).toLocaleDateString("en-ZA")}
+                      {new Date(b.resolved_at ?? b.created_at).toLocaleDateString("en-ZA")}
                     </span>
                   </div>
+                  {(b.bug_status === "OPEN" || b.bug_status === "IN_PROGRESS") && (
+                    <button
+                      type="button"
+                      onClick={() => handleResolve(b.bug_id)}
+                      disabled={resolvingBugId === b.bug_id}
+                      className="mt-3 w-full bg-primary text-primary-foreground font-extrabold tracking-wider text-[12px] uppercase rounded-xl flex items-center justify-center gap-2 py-3 disabled:opacity-60"
+                    >
+                      {resolvingBugId === b.bug_id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : null}
+                      {resolvingBugId === b.bug_id ? "Resolving…" : "Resolve"}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
