@@ -45,15 +45,14 @@ function OnboardingPage() {
 
     setLoading(true);
     try {
-      const { data: signUp, error: signUpErr } = await supabase.auth.signUp({
-        email: form.email.trim(),
-        password: TEMP_PASSWORD,
-        options: { data: { role: "EMPLOYEE" } },
+      const { data: createResp, error: createErr } = await supabase.functions.invoke("create-user", {
+        body: { email: form.email.trim(), password: TEMP_PASSWORD, role: "EMPLOYEE", firstName: form.firstName.trim(), lastName: form.lastName.trim() },
       });
-      if (signUpErr || !signUp.user) {
-        toast.error(signUpErr?.message ?? "Failed to create auth account.");
+      if (createErr || !createResp?.user?.id) {
+        toast.error(createErr?.message ?? "Failed to create auth account.");
         return;
       }
+      const signUp = { user: createResp.user };
 
       const username =
         `${form.firstName.toLowerCase().replace(/\s+/g, "")}.${form.lastName.toLowerCase().replace(/\s+/g, "")}`;

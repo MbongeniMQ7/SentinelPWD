@@ -70,18 +70,14 @@ const CreateManager = () => {
       }
 
       // 2. Create Supabase Auth user via signUp
-      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-        email: form.email,
-        password: TEMP_PASSWORD,
-        options: {
-          data: { role: "MANAGER", full_name: `${form.firstName} ${form.lastName}` },
-        },
+      const { data: createResp, error: createErr } = await supabase.functions.invoke("create-user", {
+        body: { email: form.email, password: TEMP_PASSWORD, role: "MANAGER", firstName: form.firstName, lastName: form.lastName },
       });
-
-      if (signUpErr || !signUpData.user) {
-        toast.error(signUpErr?.message ?? "Failed to create auth account.");
+      if (createErr || !createResp?.user?.id) {
+        toast.error(createErr?.message ?? "Failed to create auth account.");
         return;
       }
+      const signUpData = { user: createResp.user };
 
       const authUserId = signUpData.user.id;
 
