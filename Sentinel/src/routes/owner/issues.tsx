@@ -74,7 +74,7 @@ const Issues = () => {
           .gte("updated_at", ago24h),
         supabase
           .from("bug_reports")
-          .select("bug_id, title, description, bug_status, priority, created_at, companies(company_name), profiles(username, first_name, last_name)")
+          .select("bug_id, title, description, bug_status, priority, created_at, companies(company_name), profiles!reported_by_profile_id(username, first_name, last_name)")
           .in("bug_status", ["OPEN", "IN_PROGRESS"])
           .order("created_at", { ascending: false })
           .limit(20),
