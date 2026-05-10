@@ -56,9 +56,13 @@ function Login() {
     setLoading(true);
     try {
       if (mode === "login") {
-        const { error, role: detectedRole } = await signInAny(email, password);
+        const { error, role: detectedRole, needsPasswordReset } = await signInAny(email, password);
         if (error) {
           toast.error(error);
+          return;
+        }
+        if (needsPasswordReset) {
+          navigate({ to: "/auth/set-password" });
           return;
         }
         toast.success("Welcome back!");

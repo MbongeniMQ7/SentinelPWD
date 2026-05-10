@@ -5,8 +5,10 @@ import { TopBar } from "@/components/admin/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import type { ManagerLevel, AccessScope } from "@/lib/database.types";
+
+const TEMP_PASSWORD = "Sentinel@Temp1!";
 
 export const Route = createFileRoute("/admin/create-manager")({
   component: CreateManagerPage,
@@ -20,12 +22,10 @@ function CreateManagerPage() {
   const nav = useNavigate();
   const [canCreate, setCanCreate] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showPwd, setShowPwd] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     email: "",
-    password: "",
     level: "MANAGER" as ManagerLevel,
     scope: "COMPANY_WIDE" as AccessScope,
     canCreateManagers: false,
@@ -50,13 +50,12 @@ function CreateManagerPage() {
     if (!profile?.company_id) { toast.error("No company linked to your account."); return; }
     if (!form.firstName.trim() || !form.lastName.trim()) { toast.error("First and last name are required."); return; }
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) { toast.error("Valid email is required."); return; }
-    if (form.password.length < 8) { toast.error("Password must be at least 8 characters."); return; }
 
     setLoading(true);
     try {
       const { data: signUp, error: signUpErr } = await supabase.auth.signUp({
         email: form.email.trim(),
-        password: form.password,
+        password: TEMP_PASSWORD,
         options: { data: { role: "MANAGER" } },
       });
       if (signUpErr || !signUp.user) {
@@ -79,6 +78,7 @@ function CreateManagerPage() {
           role: "MANAGER",
           status: "ACTIVE",
           created_by: profile.profile_id,
+          needs_password_reset: true,
         })
         .select("profile_id")
         .single();
@@ -103,7 +103,27 @@ function CreateManagerPage() {
         description: `Manager @${username} (${form.level}) created by @${profile.username}`,
       });
 
-      toast.success(`Manager @${username} created.`);
+      // Fetch company name for email
+      const { data: company } = await supabase
+        .from("companies")
+        .select("company_name")
+        .eq("company_id", profile.company_id)
+        .single();
+
+      // Send welcome email via edge function (non-blocking)
+      supabase.functions
+        .invoke("send-welcome-email", {
+          body: {
+            email: form.email.trim(),
+            firstName: form.firstName.trim(),
+            lastName: form.lastName.trim(),
+            role: "MANAGER",
+            companyName: company?.company_name ?? "your company",
+          },
+        })
+        .catch((err) => console.error("Welcome email failed:", err));
+
+      toast.success(`Manager @${username} created. A welcome email has been sent.`);
       nav({ to: "/admin/hierarchy" });
     } finally {
       setLoading(false);
@@ -166,25 +186,12 @@ function CreateManagerPage() {
                 className={inputCls}
               />
             </Row>
-            <Row label="Password">
-              <div className="relative">
-                <input
-                  value={form.password}
-                  onChange={(e) => set("password", e.target.value)}
-                  type={showPwd ? "text" : "password"}
-                  placeholder="Min. 8 characters"
-                  className={inputCls + " pr-10"}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft"
-                  aria-label="Toggle password"
-                >
-                  {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </Row>
+            <div className="rounded-xl bg-gold-soft border border-gold/30 px-4 py-3">
+              <p className="text-[11px] font-bold text-gold-foreground uppercase tracking-wider mb-0.5">Temporary password</p>
+              <p className="text-[12px] text-ink-soft">
+                A secure temporary password will be emailed to the manager. They'll set their own on first login.
+              </p>
+            </div>
           </Section>
 
           {/* Manager Level */}

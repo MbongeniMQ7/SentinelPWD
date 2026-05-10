@@ -20,12 +20,18 @@ function AuthCallback() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, needs_password_reset")
         .eq("auth_user_id", session.user.id)
         .single();
 
       const role = (profile?.role as AppRole) ?? "EMPLOYEE";
       const type = new URLSearchParams(window.location.search).get("type");
+
+      // New users created by admin/owner must set their own password first
+      if (profile?.needs_password_reset) {
+        navigate({ to: "/auth/set-password" });
+        return;
+      }
 
       if (type === "recovery") {
         toast.success("You're logged in — please update your password in Settings.");

@@ -61,6 +61,7 @@ export interface Profile {
   role: UserRole;
   status: UserStatus;
   created_by: string | null;
+  needs_password_reset: boolean;
   created_at: string;
   updated_at: string;
 }

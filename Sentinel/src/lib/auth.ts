@@ -61,7 +61,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 export async function signInAny(
   emailOrUsername: string,
   password: string
-): Promise<{ error: string | null; role: AppRole | null }> {
+): Promise<{ error: string | null; role: AppRole | null; needsPasswordReset?: boolean }> {
   try {
     return await withTimeout(_signInAny(emailOrUsername, password), SIGN_IN_TIMEOUT_MS, "Sign in");
   } catch (err: unknown) {
@@ -73,7 +73,7 @@ export async function signInAny(
 async function _signInAny(
   emailOrUsername: string,
   password: string
-): Promise<{ error: string | null; role: AppRole | null }> {
+): Promise<{ error: string | null; role: AppRole | null; needsPasswordReset?: boolean }> {
   // Clear any stale/expired session from localStorage before attempting a fresh
   // sign-in. This prevents the Supabase client from trying to silently refresh
   // an old token (which can hang indefinitely) before processing the new login.
@@ -118,7 +118,16 @@ async function _signInAny(
     return { error: "Account not set up yet. Contact your administrator.", role: null };
   }
 
-  return { error: null, role };
+  // Check if this user needs to reset their temporary password
+  const { data: profileRow } = await supabase
+    .from("profiles")
+    .select("needs_password_reset")
+    .eq("auth_user_id", data.user.id)
+    .maybeSingle();
+
+  const needsReset = profileRow?.needs_password_reset === true;
+
+  return { error: null, role, needsPasswordReset: needsReset };
 }
 
 /**

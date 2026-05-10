@@ -1,12 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/admin/layout/AppShell";
 import { TopBar } from "@/components/admin/layout/TopBar";
-import { ChevronRight, Wifi, Fingerprint, ShieldCheck, CheckCircle2, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
+import { ChevronRight, Wifi, Fingerprint, ShieldCheck, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { MonitoringType } from "@/lib/database.types";
+
+const TEMP_PASSWORD = "Sentinel@Temp1!";
 
 export const Route = createFileRoute("/admin/onboarding")({
   head: () => ({
@@ -25,13 +27,11 @@ function OnboardingPage() {
   const { profile } = useAuth();
   const nav = useNavigate();
   const [monitoringType, setMonitoringType] = useState<MonitoringType>("CAMERA");
-  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     email: "",
-    password: "",
     department: "",
     jobTitle: "",
   });
@@ -42,13 +42,12 @@ function OnboardingPage() {
     if (!profile?.company_id) { toast.error("No company linked to your account."); return; }
     if (!form.firstName.trim() || !form.lastName.trim()) { toast.error("First and last name are required."); return; }
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) { toast.error("Valid email required."); return; }
-    if (form.password.length < 8) { toast.error("Password must be at least 8 characters."); return; }
 
     setLoading(true);
     try {
       const { data: signUp, error: signUpErr } = await supabase.auth.signUp({
         email: form.email.trim(),
-        password: form.password,
+        password: TEMP_PASSWORD,
         options: { data: { role: "EMPLOYEE" } },
       });
       if (signUpErr || !signUp.user) {
@@ -71,6 +70,7 @@ function OnboardingPage() {
           role: "EMPLOYEE",
           status: "ACTIVE",
           created_by: profile.profile_id,
+          needs_password_reset: true,
         })
         .select("profile_id")
         .single();
@@ -94,7 +94,27 @@ function OnboardingPage() {
         description: `Employee @${username} (${monitoringType}) created by @${profile.username}`,
       });
 
-      toast.success(`@${username} registered successfully.`);
+      // Fetch company name for email
+      const { data: company } = await supabase
+        .from("companies")
+        .select("company_name")
+        .eq("company_id", profile.company_id)
+        .single();
+
+      // Send welcome email via edge function (non-blocking)
+      supabase.functions
+        .invoke("send-welcome-email", {
+          body: {
+            email: form.email.trim(),
+            firstName: form.firstName.trim(),
+            lastName: form.lastName.trim(),
+            role: "EMPLOYEE",
+            companyName: company?.company_name ?? "your company",
+          },
+        })
+        .catch((err) => console.error("Welcome email failed:", err));
+
+      toast.success(`@${username} registered. A welcome email has been sent.`);
       nav({ to: "/admin/workforce" });
     } finally {
       setLoading(false);
@@ -126,20 +146,12 @@ function OnboardingPage() {
           <Field label="EMAIL ADDRESS">
             <input value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="employee@company.com" type="email" className={inputCls} />
           </Field>
-          <Field label="PASSWORD">
-            <div className="relative">
-              <input
-                value={form.password}
-                onChange={(e) => set("password", e.target.value)}
-                type={showPwd ? "text" : "password"}
-                placeholder="Min. 8 characters"
-                className={inputCls + " pr-10"}
-              />
-              <button type="button" onClick={() => setShowPwd((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft" aria-label="Toggle password">
-                {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </Field>
+          <div className="rounded-xl bg-gold-soft border border-gold/30 px-4 py-3">
+            <p className="text-[11px] font-bold text-gold-foreground uppercase tracking-wider mb-0.5">Temporary password</p>
+            <p className="text-[13px] font-semibold text-ink-soft">
+              A secure temporary password will be sent to the employee by email. They'll be prompted to set their own on first login.
+            </p>
+          </div>
           <Field label="DEPARTMENT (optional)">
             <input value={form.department} onChange={(e) => set("department", e.target.value)} placeholder="e.g. Operations" className={inputCls} />
           </Field>

@@ -4,15 +4,16 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AppShell } from "@/components/owner/AppShell";
 import { TopBar } from "@/components/owner/TopBar";
-import { Eye, EyeOff, UserPlus, Loader2 } from "lucide-react";
+import { UserPlus, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+
+const TEMP_PASSWORD = "Sentinel@Temp1!";
 
 const schema = z.object({
   firstName: z.string().trim().min(2, "First name required"),
   lastName: z.string().trim().min(2, "Last name required"),
   username: z.string().trim().min(3, "Username must be at least 3 characters").max(40).regex(/^\S+$/, "No spaces in username"),
   email: z.string().trim().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
   companyId: z.string().uuid("Select a company"),
 });
 
@@ -23,7 +24,6 @@ interface Company {
 
 const CreateManager = () => {
   const nav = useNavigate();
-  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [form, setForm] = useState({
@@ -31,7 +31,6 @@ const CreateManager = () => {
     lastName: "",
     username: "",
     email: "",
-    password: "",
     companyId: "",
   });
 
@@ -73,7 +72,7 @@ const CreateManager = () => {
       // 2. Create Supabase Auth user via signUp
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
         email: form.email,
-        password: form.password,
+        password: TEMP_PASSWORD,
         options: {
           data: { role: "MANAGER", full_name: `${form.firstName} ${form.lastName}` },
         },
@@ -96,6 +95,7 @@ const CreateManager = () => {
         email: form.email,
         role: "MANAGER",
         status: "ACTIVE",
+        needs_password_reset: true,
       });
 
       if (profileErr) {
@@ -126,7 +126,21 @@ const CreateManager = () => {
         description: `Senior Manager @${form.username} created for company ${form.companyId || "N/A"}`,
       });
 
-      toast.success(`Senior Manager @${form.username} created successfully.`);
+      // 6. Send welcome email (non-blocking)
+      const companyName = companies.find((c) => c.company_id === form.companyId)?.company_name ?? "your company";
+      supabase.functions
+        .invoke("send-welcome-email", {
+          body: {
+            email: form.email,
+            firstName: form.firstName,
+            lastName: form.lastName,
+            role: "MANAGER",
+            companyName,
+          },
+        })
+        .catch((err) => console.error("Welcome email failed:", err));
+
+      toast.success(`Senior Manager @${form.username} created. A welcome email has been sent.`);
       nav({ to: "/owner/users" });
     } finally {
       setLoading(false);
@@ -167,22 +181,8 @@ const CreateManager = () => {
             <div className="label-eyebrow mb-3">LOGIN CREDENTIALS</div>
             <div className="space-y-4">
               <input className={inputClass} placeholder="Email address" type="email" value={form.email} onChange={set("email")} />
-              <div className="relative">
-                <input
-                  className={inputClass}
-                  placeholder="Password (min 6 characters)"
-                  type={showPwd ? "text" : "password"}
-                  value={form.password}
-                  onChange={set("password")}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd((s) => !s)}
-                  className="absolute right-0 top-3 text-muted-foreground"
-                  aria-label="Toggle password"
-                >
-                  {showPwd ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
+              <div className="rounded-xl bg-gold/10 border border-gold/30 px-4 py-3 text-sm text-primary/80">
+                <strong>Temporary password:</strong> A secure temporary password will be emailed to the manager. They'll be required to set their own password on first login.
               </div>
             </div>
           </div>
@@ -205,7 +205,7 @@ const CreateManager = () => {
 
           <div className="pt-2">
             <div className="rounded-xl bg-gold/10 border border-gold/30 px-4 py-3 text-sm text-primary/80 mb-4">
-              <strong>Note:</strong> The new manager will log in at <span className="font-mono text-primary">/choose-role</span> using the email and password you set here. Their role is automatically set to <strong>SENIOR_MANAGER</strong>.
+              <strong>Note:</strong> The new manager will receive a welcome email with login instructions. Their role is automatically set to <strong>SENIOR_MANAGER</strong>.
             </div>
             <button
               type="submit"

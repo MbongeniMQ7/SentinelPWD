@@ -43,6 +43,7 @@ import { Route as OwnerCompaniesRouteImport } from './routes/owner/companies'
 import { Route as OwnerCameraRouteImport } from './routes/owner/camera'
 import { Route as OwnerAlertsRouteImport } from './routes/owner/alerts'
 import { Route as OwnerActivityRouteImport } from './routes/owner/activity'
+import { Route as AuthSetPasswordRouteImport } from './routes/auth/set-password'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminWorkforceRouteImport } from './routes/admin/workforce'
 import { Route as AdminSupportRouteImport } from './routes/admin/support'
@@ -233,6 +234,11 @@ const OwnerActivityRoute = OwnerActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => OwnerRoute,
 } as any)
+const AuthSetPasswordRoute = AuthSetPasswordRouteImport.update({
+  id: '/auth/set-password',
+  path: '/auth/set-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -350,6 +356,7 @@ export interface FileRoutesByFullPath {
   '/admin/support': typeof AdminSupportRoute
   '/admin/workforce': typeof AdminWorkforceRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/owner/activity': typeof OwnerActivityRoute
   '/owner/alerts': typeof OwnerAlertsRoute
   '/owner/camera': typeof OwnerCameraRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByTo {
   '/admin/support': typeof AdminSupportRoute
   '/admin/workforce': typeof AdminWorkforceRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/owner/activity': typeof OwnerActivityRoute
   '/owner/alerts': typeof OwnerAlertsRoute
   '/owner/camera': typeof OwnerCameraRoute
@@ -457,6 +465,7 @@ export interface FileRoutesById {
   '/admin/support': typeof AdminSupportRoute
   '/admin/workforce': typeof AdminWorkforceRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/owner/activity': typeof OwnerActivityRoute
   '/owner/alerts': typeof OwnerAlertsRoute
   '/owner/camera': typeof OwnerCameraRoute
@@ -514,6 +523,7 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/workforce'
     | '/auth/callback'
+    | '/auth/set-password'
     | '/owner/activity'
     | '/owner/alerts'
     | '/owner/camera'
@@ -566,6 +576,7 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/workforce'
     | '/auth/callback'
+    | '/auth/set-password'
     | '/owner/activity'
     | '/owner/alerts'
     | '/owner/camera'
@@ -620,6 +631,7 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/workforce'
     | '/auth/callback'
+    | '/auth/set-password'
     | '/owner/activity'
     | '/owner/alerts'
     | '/owner/camera'
@@ -662,6 +674,7 @@ export interface RootRouteChildren {
   OwnerRoute: typeof OwnerRouteWithChildren
   UserRoute: typeof UserRouteWithChildren
   AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthSetPasswordRoute: typeof AuthSetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -903,6 +916,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/owner/activity'
       preLoaderRoute: typeof OwnerActivityRouteImport
       parentRoute: typeof OwnerRoute
+    }
+    '/auth/set-password': {
+      id: '/auth/set-password'
+      path: '/auth/set-password'
+      fullPath: '/auth/set-password'
+      preLoaderRoute: typeof AuthSetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
       id: '/auth/callback'
@@ -1175,6 +1195,7 @@ const rootRouteChildren: RootRouteChildren = {
   OwnerRoute: OwnerRouteWithChildren,
   UserRoute: UserRouteWithChildren,
   AuthCallbackRoute: AuthCallbackRoute,
+  AuthSetPasswordRoute: AuthSetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

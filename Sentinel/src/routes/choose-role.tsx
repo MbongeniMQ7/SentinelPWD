@@ -45,10 +45,14 @@ function LoginPage() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const { error, role } = await signInAny(emailOrUsername, password);
+      const { error, role, needsPasswordReset } = await signInAny(emailOrUsername, password);
       if (error) {
         setErrorMsg(error);
         toast.error(error);
+        return;
+      }
+      if (needsPasswordReset) {
+        await navigate({ to: "/auth/set-password" });
         return;
       }
       toast.success("Welcome back!");
