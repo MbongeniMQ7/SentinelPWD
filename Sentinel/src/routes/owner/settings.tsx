@@ -2,18 +2,186 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/owner/AppShell";
 import { TopBar } from "@/components/owner/TopBar";
 import { Sliders, Shield, Bell, Receipt, ChevronRight, CreditCard, Pencil, Copy, UserPlus, AlertTriangle, Zap, LogOut } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { signOut } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
+import type { PaymentStatus } from "@/lib/database.types";
+import { supabase } from "@/lib/supabase";
+import {
+  DEFAULT_OWNER_NOTIFICATION_SETTINGS,
+  emitOwnerNotification,
+  enableDesktopNotificationsIfNeeded,
+  isMonthlyBillingRetry,
+  isServerPerformanceSignal,
+  loadOwnerNotificationSettings,
+  sameNotificationSettings,
+  saveOwnerNotificationSettings,
+  type OwnerNotificationSettings,
+} from "@/lib/systemNotifications";
 
 const Settings = () => {
   const navigate = useNavigate();
-  const [toggles, setToggles] = useState({ reg: true, sys: true, pay: false });
+  const { profile } = useAuth();
+  const [toggles, setToggles] = useState<OwnerNotificationSettings>(DEFAULT_OWNER_NOTIFICATION_SETTINGS);
+  const [savedToggles, setSavedToggles] = useState<OwnerNotificationSettings>(DEFAULT_OWNER_NOTIFICATION_SETTINGS);
+  const seenEventsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const settings = loadOwnerNotificationSettings();
+    setToggles(settings);
+    setSavedToggles(settings);
+  }, []);
+
+  useEffect(() => {
+    const channels = [] as ReturnType<typeof supabase.channel>[];
+
+    async function fetchCompanyName(companyId: string | null | undefined) {
+      if (!companyId) return null;
+      const { data } = await supabase
+        .from("companies")
+        .select("company_name")
+        .eq("company_id", companyId)
+        .single();
+      return data?.company_name ?? null;
+    }
+
+    if (savedToggles.reg) {
+      const registrationChannel = supabase
+        .channel("owner-settings-company-signups")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "companies",
+          },
+          (payload) => {
+            const company = payload.new as {
+              company_id: string;
+              company_name?: string | null;
+              contact_email?: string | null;
+            };
+            const eventId = `company:${company.company_id}`;
+            if (seenEventsRef.current.has(eventId)) return;
+            seenEventsRef.current.add(eventId);
+            emitOwnerNotification({
+              title: "New company signup",
+              description: `${company.company_name ?? "A new company"} joined the platform${company.contact_email ? ` • ${company.contact_email}` : ""}.`,
+              tag: eventId,
+            });
+          },
+        )
+        .subscribe();
+      channels.push(registrationChannel);
+    }
+
+    if (savedToggles.sys) {
+      const performanceChannel = supabase
+        .channel("owner-settings-system-notifications")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "audit_logs",
+          },
+          (payload) => {
+            const audit = payload.new as {
+              audit_id?: string;
+              action_type?: string | null;
+              description?: string | null;
+            };
+            if (!isServerPerformanceSignal(audit)) return;
+            const eventId = `audit:${audit.audit_id ?? `${audit.action_type}:${audit.description ?? ""}`}`;
+            if (seenEventsRef.current.has(eventId)) return;
+            seenEventsRef.current.add(eventId);
+            emitOwnerNotification({
+              title: "Server performance drop",
+              description: audit.description ?? "A realtime performance warning was recorded in the audit log.",
+              tag: eventId,
+            });
+          },
+        )
+        .subscribe();
+      channels.push(performanceChannel);
+    }
+
+    if (savedToggles.pay) {
+      const billingChannel = supabase
+        .channel("owner-settings-billing-retries")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "payments",
+          },
+          async (payload) => {
+            const payment = payload.new as {
+              payment_id: string;
+              company_id?: string | null;
+              payment_date: string;
+              payment_status: PaymentStatus;
+            };
+            if (!payment?.payment_id || !isMonthlyBillingRetry(payment.payment_date, payment.payment_status)) {
+              return;
+            }
+
+            const eventId = `payment:${payment.payment_id}:${payment.payment_status}`;
+            if (seenEventsRef.current.has(eventId)) return;
+            seenEventsRef.current.add(eventId);
+
+            const companyName = await fetchCompanyName(payment.company_id);
+            emitOwnerNotification({
+              title: "Monthly billing retry",
+              description: `${companyName ?? "A company"} has a ${payment.payment_status.toLowerCase()} payment that may require a retry this month.`,
+              tag: eventId,
+            });
+          },
+        )
+        .subscribe();
+      channels.push(billingChannel);
+    }
+
+    return () => {
+      for (const channel of channels) {
+        void supabase.removeChannel(channel);
+      }
+    };
+  }, [savedToggles.pay, savedToggles.reg, savedToggles.sys, profile?.profile_id]);
+
   const T = ({ k }: { k: keyof typeof toggles }) => (
     <button onClick={() => setToggles(s => ({ ...s, [k]: !s[k] }))}
       className={`h-7 w-12 rounded-full p-1 transition-colors ${toggles[k] ? "bg-gold" : "bg-secondary"}`}>
       <span className={`block h-5 w-5 rounded-full bg-white transition-transform ${toggles[k] ? "translate-x-5" : ""}`} />
     </button>
   );
+
+  async function handleSaveChanges() {
+    const permission = await enableDesktopNotificationsIfNeeded(toggles);
+    saveOwnerNotificationSettings(toggles);
+    setSavedToggles(toggles);
+
+    await supabase.from("audit_logs").insert({
+      profile_id: profile?.profile_id ?? null,
+      company_id: profile?.company_id ?? null,
+      action_type: "SETTINGS_UPDATED",
+      description: "Notification preferences updated in owner settings.",
+    });
+
+    if (permission === "denied") {
+      toast("Settings saved. Browser notifications are blocked, so alerts will show in-app only.");
+      return;
+    }
+
+    toast.success("Notification settings saved.");
+  }
+
+  function handleDiscardChanges() {
+    setToggles(savedToggles);
+    toast("Reverted unsaved notification changes.");
+  }
 
   return (
     <AppShell>
@@ -103,8 +271,21 @@ const Settings = () => {
         </div>
 
         <div className="flex items-center justify-between gap-4 pt-2">
-          <button className="font-display font-bold text-foreground">Discard</button>
-          <button className="bg-white text-primary font-bold tracking-wider text-xs px-6 py-4 rounded-xl">SAVE CHANGES</button>
+          <button
+            type="button"
+            onClick={handleDiscardChanges}
+            disabled={sameNotificationSettings(toggles, savedToggles)}
+            className="font-display font-bold text-foreground disabled:opacity-50"
+          >
+            Discard
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveChanges}
+            className="bg-white text-primary font-bold tracking-wider text-xs px-6 py-4 rounded-xl"
+          >
+            SAVE CHANGES
+          </button>
         </div>
 
         <button
