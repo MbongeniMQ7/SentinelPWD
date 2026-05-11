@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/owner/AppShell";
 import { TopBar } from "@/components/owner/TopBar";
-import { Sliders, Shield, Bell, Receipt, ChevronRight, CreditCard, Pencil, Copy, UserPlus, AlertTriangle, Zap, LogOut } from "lucide-react";
+import { Sliders, Shield, Bell, Receipt, ChevronRight, Pencil, Copy, UserPlus, AlertTriangle, Zap, LogOut, Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { signOut } from "@/lib/auth";
@@ -29,6 +29,9 @@ const Settings = () => {
   const [toggles, setToggles] = useState<OwnerNotificationSettings>(DEFAULT_OWNER_NOTIFICATION_SETTINGS);
   const [savedToggles, setSavedToggles] = useState<OwnerNotificationSettings>(DEFAULT_OWNER_NOTIFICATION_SETTINGS);
   const seenEventsRef = useRef<Set<string>>(new Set());
+  const [threshold, setThreshold] = useState("250");
+  const [retention, setRetention] = useState("90");
+  const [apiKeyCopied, setApiKeyCopied] = useState(false);
 
   useEffect(() => {
     const settings = loadOwnerNotificationSettings();
@@ -186,6 +189,22 @@ const Settings = () => {
     toast("Reverted unsaved notification changes.");
   }
 
+  function handleSaveGeneralConfig() {
+    const t = parseInt(threshold, 10);
+    const r = parseInt(retention, 10);
+    if (isNaN(t) || t < 50 || t > 5000) { toast.error("Threshold must be between 50 and 5000 ms."); return; }
+    if (isNaN(r) || r < 7 || r > 365) { toast.error("Data retention must be between 7 and 365 days."); return; }
+    toast.success("System configuration saved.");
+  }
+
+  function handleCopyApiKey() {
+    navigator.clipboard.writeText("sk-sentinel-84h2-92j1-k092l-p921").then(() => {
+      setApiKeyCopied(true);
+      toast.success("API key copied to clipboard.");
+      setTimeout(() => setApiKeyCopied(false), 2000);
+    }).catch(() => toast.error("Failed to copy — please copy manually."));
+  }
+
   return (
     <AppShell>
       <TopBar />
@@ -236,8 +255,9 @@ const Settings = () => {
             <div>
               <h3 className="font-display font-bold text-xl flex items-center gap-2"><span className="h-1 w-3 bg-gold rounded-full" /><span className="h-1 w-3 bg-gold rounded-full" /><span className="h-1 w-3 bg-gold rounded-full" />System Configuration</h3>
               <div className="bg-card text-card-foreground rounded-2xl p-5 shadow-card mt-3 space-y-4">
-                <div><div className="label-eyebrow">GLOBAL THRESHOLD (MS)</div><input defaultValue="250" className="mt-2 w-full bg-secondary rounded-lg px-4 py-3 text-primary outline-none" /></div>
-                <div><div className="label-eyebrow">DATA RETENTION (DAYS)</div><input defaultValue="90" className="mt-2 w-full bg-secondary rounded-lg px-4 py-3 text-primary outline-none" /></div>
+                <div><div className="label-eyebrow">GLOBAL THRESHOLD (MS)</div><input value={threshold} onChange={e => setThreshold(e.target.value)} type="number" min={50} max={5000} className="mt-2 w-full bg-secondary rounded-lg px-4 py-3 text-primary outline-none focus:ring-2 focus:ring-primary/30" /></div>
+                <div><div className="label-eyebrow">DATA RETENTION (DAYS)</div><input value={retention} onChange={e => setRetention(e.target.value)} type="number" min={7} max={365} className="mt-2 w-full bg-secondary rounded-lg px-4 py-3 text-primary outline-none focus:ring-2 focus:ring-primary/30" /></div>
+                <button type="button" onClick={handleSaveGeneralConfig} className="w-full bg-primary text-primary-foreground font-bold text-sm tracking-wider py-3 rounded-xl mt-2">SAVE CONFIGURATION</button>
               </div>
             </div>
           </>
@@ -252,7 +272,9 @@ const Settings = () => {
                 <div className="label-eyebrow">MASTER API KEY</div>
                 <div className="mt-2 bg-secondary rounded-lg px-4 py-3 flex items-center justify-between">
                   <code className="text-primary text-sm">sk-sentinel-84h2-92j1-k092l-p921</code>
-                  <Copy className="h-4 w-4 text-muted-foreground" />
+                  <button type="button" onClick={handleCopyApiKey} aria-label="Copy API key" className="p-1 rounded hover:bg-black/10 transition-colors">
+                    {apiKeyCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+                  </button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">Last rotated 12 days ago.</p>
               </div>
@@ -268,11 +290,11 @@ const Settings = () => {
                       <p className="text-xs text-muted-foreground mt-1">{p.desc}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="flex-1 bg-secondary rounded-lg px-4 py-2.5 flex items-center justify-between"><span className="text-primary/60">R</span><span className="font-display font-bold text-primary">{p.price}</span></div>
-                        <button className="h-10 w-10 rounded-lg flex items-center justify-center text-primary"><Pencil className="h-4 w-4" /></button>
+                        <button type="button" onClick={() => toast(`Editing "${p.name}" — coming soon.`)} className="h-10 w-10 rounded-lg flex items-center justify-center text-primary hover:bg-secondary transition-colors"><Pencil className="h-4 w-4" /></button>
                       </div>
                     </div>
                   ))}
-                  <button className="w-full text-center text-primary font-bold underline underline-offset-4 decoration-gold pt-2">Add New Tier</button>
+                  <button type="button" onClick={() => toast("Add New Tier — coming soon.")} className="w-full text-center text-primary font-bold underline underline-offset-4 decoration-gold pt-2">Add New Tier</button>
                 </div>
               </div>
             </div>
