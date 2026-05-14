@@ -195,6 +195,10 @@ let landmarkerPromise: Promise<FaceLandmarker> | null = null;
 // partial occlusion (hats, glasses, poor lighting, non-frontal angles).
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float32/1/face_landmarker.task";
+const WASM_ROOTS = [
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm",
+  "https://unpkg.com/@mediapipe/tasks-vision@0.10.35/wasm",
+];
 
 const BASE_OPTIONS = {
   modelAssetPath: MODEL_URL,
@@ -216,13 +220,21 @@ const LANDMARKER_OPTIONS = {
 };
 
 async function createLandmarker(delegate: "GPU" | "CPU"): Promise<FaceLandmarker> {
-  const fileset = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm",
-  );
-  return FaceLandmarker.createFromOptions(fileset, {
-    baseOptions: { ...BASE_OPTIONS, delegate },
-    ...LANDMARKER_OPTIONS,
-  });
+  let lastError: unknown = null;
+
+  for (const wasmRoot of WASM_ROOTS) {
+    try {
+      const fileset = await FilesetResolver.forVisionTasks(wasmRoot);
+      return await FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: { ...BASE_OPTIONS, delegate },
+        ...LANDMARKER_OPTIONS,
+      });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError ?? new Error("Failed to load MediaPipe vision assets");
 }
 
 async function getLandmarker(): Promise<FaceLandmarker> {
@@ -279,6 +291,7 @@ export function useFaceDetection(
     t0: 0,
   });
   const cancelledRef = useRef(false);
+  const detectionFailureCountRef = useRef(0);
 
   // ---------- Camera ----------
 
@@ -304,19 +317,59 @@ export function useFaceDetection(
       });
       streamRef.current = stream;
       const video = videoRef.current;
-      if (!video) return;
+      if (!video) {
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        setState((s) => ({
+          ...s,
+          cameraStatus: "error",
+          error: "Camera view failed to initialize",
+        }));
+        return;
+      }
+
       video.srcObject = stream;
       video.muted = true;
       video.playsInline = true;
+
+      await new Promise<void>((resolve, reject) => {
+        if (video.readyState >= 1) {
+          resolve();
+          return;
+        }
+
+        const handleLoadedMetadata = () => {
+          cleanup();
+          resolve();
+        };
+        const handleError = () => {
+          cleanup();
+          reject(new Error("Camera stream failed to load into the video element"));
+        };
+        const cleanup = () => {
+          video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+          video.removeEventListener("error", handleError);
+        };
+
+        video.addEventListener("loadedmetadata", handleLoadedMetadata, { once: true });
+        video.addEventListener("error", handleError, { once: true });
+      });
+
       await video.play().catch(() => {
         /* autoplay can throw on some browsers; the loop tolerates paused video */
       });
+      lastTickRef.current = 0;
+      lastVideoTimeRef.current = -1;
+      fpsAccumRef.current = { frames: 0, t0: performance.now() };
+      detectionFailureCountRef.current = 0;
       setState((s) => ({ ...s, cameraStatus: "active" }));
     } catch (err) {
       const e = err as DOMException | Error;
       const denied =
         (e as DOMException).name === "NotAllowedError" ||
         (e as DOMException).name === "SecurityError";
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
       setState((s) => ({
         ...s,
         cameraStatus: denied ? "denied" : "error",
@@ -365,6 +418,7 @@ export function useFaceDetection(
 
       try {
         if (!landmarker) landmarker = await getLandmarker();
+        detectionFailureCountRef.current = 0;
         const result: FaceLandmarkerResult = landmarker.detectForVideo(
           video,
           performance.now(),
@@ -378,6 +432,22 @@ export function useFaceDetection(
         console.warn("[useFaceDetection] detection failed — resetting landmarker", err);
         landmarker = null;
         landmarkerPromise = null;
+        detectionFailureCountRef.current += 1;
+        if (detectionFailureCountRef.current >= 3) {
+          const message = err instanceof Error ? err.message : "Face detector failed to initialize";
+          setState((s) => ({
+            ...s,
+            faceDetected: false,
+            faceBox: null,
+            eyePositions: { left: null, right: null },
+            eyeState: "unknown",
+            eyeOpenness: { left: null, right: null },
+            headPose: null,
+            fearScore: null,
+            emotion: null,
+            error: message,
+          }));
+        }
       }
     };
 
@@ -577,6 +647,7 @@ export function useFaceDetection(
         headPose,
         fearScore,
         emotion,
+        error: null,
       }));
     };
 
