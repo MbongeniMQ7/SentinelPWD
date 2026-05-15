@@ -274,13 +274,13 @@ function Settings() {
           icon={<ExternalLink className="h-4 w-4" />}
           title="Privacy Policy"
           trailing={<ExternalLink className="h-4 w-4 text-muted-foreground" />}
-          onClick={() => window.open("https://sentinelai-sofware.vercel.app/privacy", "_blank", "noopener,noreferrer")}
+          onClick={() => window.open("https://sentinelai-software.vercel.app/privacy", "_blank", "noopener,noreferrer")}
         />
         <Row
           icon={<FileCheck className="h-4 w-4" />}
           title="Terms of Service"
           trailing={<ExternalLink className="h-4 w-4 text-muted-foreground" />}
-          onClick={() => window.open("https://sentinelai-sofware.vercel.app/terms", "_blank", "noopener,noreferrer")}
+          onClick={() => window.open("https://sentinelai-software.vercel.app/terms", "_blank", "noopener,noreferrer")}
         />
       </Section>
 

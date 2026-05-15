@@ -82,7 +82,7 @@ function Alerts() {
             <p className="text-sm text-muted-foreground mt-1">
               {unacknowledgedCount > 0
                 ? `${unacknowledgedCount} unresolved alert${unacknowledgedCount !== 1 ? "s" : ""}`
-                : "All clear â€” no active alerts"}
+                : "All clear - no active alerts"}
             </p>
           </div>
           {unacknowledgedCount > 0 && (
@@ -92,10 +92,10 @@ function Alerts() {
           )}
         </div>
 
-        {/* â”€â”€ Live HIGH fatigue alerts (current session) â”€â”€ */}
+        {/* Live HIGH fatigue alerts (current session) */}
         {liveHighAlerts.length > 0 && (
           <>
-            <span className="label-eyebrow">Critical â€” Right Now</span>
+            <span className="label-eyebrow">Critical - Right Now</span>
             {liveHighAlerts.map((a) => (
               <div key={a.id} className="panel p-4 border-l-4 border-l-danger">
                 <div className="flex items-start gap-3">
@@ -171,7 +171,7 @@ function Alerts() {
           </>
         )}
 
-        {/* ── Past 24 hours from DB ── */}
+        {/* Past 24 hours from DB */}
         <div className="flex items-center justify-between pt-2">
           <span className="label-eyebrow">Past 24 Hours</span>
           <button
@@ -212,7 +212,7 @@ function Alerts() {
           ))
         )}
 
-        {/* â”€â”€ Older alerts â”€â”€ */}
+        {/* Older alerts */}
         {olderAlerts.length > 0 && (
           <>
             <button

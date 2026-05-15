@@ -1,15 +1,21 @@
+import { Link, useLocation } from "@tanstack/react-router";
 import { useProfile } from "@/hooks/useProfile";
 import { UserCircle2 } from "lucide-react";
 
 export function AvatarBadge({ size = 36 }: { size?: number }) {
+  const { pathname } = useLocation();
   const { profile } = useProfile();
   const displayName = profile ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() : null;
   const initials = displayName
     ? displayName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : null;
+  const isProfileRoute = pathname === "/user/profile";
 
   return (
-    <div
+    <Link
+      to="/user/profile"
+      aria-label={isProfileRoute ? "Profile" : "Open profile"}
+      title={isProfileRoute ? "Profile" : "Open profile"}
       className="rounded-full bg-navy ring-2 ring-gold/60 flex items-center justify-center overflow-hidden"
       style={{ width: size, height: size }}
     >
@@ -18,6 +24,6 @@ export function AvatarBadge({ size = 36 }: { size?: number }) {
       ) : (
         <UserCircle2 className="text-gold" style={{ width: size * 0.6, height: size * 0.6 }} />
       )}
-    </div>
+    </Link>
   );
 }
