@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/user/AppHeader";
 import { BottomNav } from "@/components/user/BottomNav";
@@ -31,11 +32,19 @@ export const Route = createFileRoute("/user/monitoring")(
 );
 
 function Monitoring() {
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  // AI monitoring requires a desktop — redirect mobile users back to home.
+  useEffect(() => {
+    if (isMobile) {
+      void navigate({ to: "/user/home", replace: true });
+    }
+  }, [isMobile, navigate]);
+
   const { profile } = useAuth();
   const workerId = profile?.profile_id ?? "anonymous";
   const workerName = profile ? `${profile.first_name} ${profile.last_name}` : "Unknown";
-
-  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const sessionStartRef = useRef<number>(Date.now());
   const dbSessionIdRef = useRef<string | null>(null);

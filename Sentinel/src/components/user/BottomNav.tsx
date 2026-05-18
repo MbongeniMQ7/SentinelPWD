@@ -2,13 +2,17 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { Home, Eye, Bell, BarChart3, User } from "lucide-react";
 import logo from "@/assets/logo.png";
 
-const items = [
-  { to: "/user/home", label: "Home", icon: Home },
+/** All nav items shown on the desktop sidebar. */
+const desktopItems = [
+  { to: "/user/home",       label: "Home",       icon: Home },
   { to: "/user/monitoring", label: "Monitoring", icon: Eye },
-  { to: "/user/alerts", label: "Alerts", icon: Bell },
-  { to: "/user/reports", label: "Reports", icon: BarChart3 },
-  { to: "/user/profile", label: "Profile", icon: User },
+  { to: "/user/alerts",     label: "Alerts",     icon: Bell },
+  { to: "/user/reports",    label: "Reports",    icon: BarChart3 },
+  { to: "/user/profile",    label: "Profile",    icon: User },
 ] as const;
+
+/** Mobile tab bar omits Monitoring — AI camera analysis requires a desktop. */
+const mobileItems = desktopItems.filter((item) => item.to !== "/user/monitoring");
 
 export function BottomNav() {
   const { pathname } = useLocation();
@@ -34,7 +38,7 @@ export function BottomNav() {
         {/* Nav */}
         <nav className="flex-1 flex flex-col gap-1 px-3 py-4 overflow-y-auto">
           <p className="px-3 mb-2 text-[9px] font-extrabold tracking-[0.2em] uppercase" style={{ color: "oklch(0.65 0.04 255)" }}>Navigation</p>
-          {items.map(({ to, label, icon: Icon }) => {
+          {desktopItems.map(({ to, label, icon: Icon }) => {
             const active = pathname === to;
             return (
               <Link
@@ -84,8 +88,8 @@ export function BottomNav() {
         className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-card border-t border-border"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <ul className="grid grid-cols-5">
-          {items.map(({ to, label, icon: Icon }) => {
+        <ul className="grid grid-cols-4">
+          {mobileItems.map(({ to, label, icon: Icon }) => {
             const active = pathname === to;
             return (
               <li key={to}>
