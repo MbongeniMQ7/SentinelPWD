@@ -139,7 +139,7 @@ function Home() {
                   ? `Live — ${hive.data?.state ?? "—"}`
                   : hive.status === "connecting"
                   ? "Connecting…"
-                  : hive.error ?? "Offline"}
+                  : "Device not connected"}
               </div>
             </div>
           </div>

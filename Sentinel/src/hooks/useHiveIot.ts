@@ -56,6 +56,14 @@ export function useHiveIot(options: UseHiveIotOptions = {}): UseHiveIotResult {
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
+        // Guard against the Vercel SPA catch-all returning HTML with status 200.
+        // When the IoT device is unreachable, the proxy target is unavailable and
+        // some hosts fall back to serving the index page instead of a JSON error.
+        const contentType = res.headers.get("content-type") ?? "";
+        if (!contentType.includes("application/json")) {
+          throw new Error("Device offline");
+        }
+
         const json: HiveIotData = await res.json();
         console.log("[HiveIoT] data:", json);
 
