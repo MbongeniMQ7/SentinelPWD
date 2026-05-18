@@ -106,6 +106,8 @@ export interface FaceDetectionState {
   emotion: EmotionState | null;
   fps: number;
   error: string | null;
+  /** True while WASM/model is being downloaded and compiled (first run only). */
+  modelLoading: boolean;
 }
 
 export interface UseFaceDetectionOptions {
@@ -191,10 +193,10 @@ function bboxFromLandmarks(
 
 let landmarkerPromise: Promise<FaceLandmarker> | null = null;
 
-// float32 model — significantly more accurate than float16, especially for
-// partial occlusion (hats, glasses, poor lighting, non-frontal angles).
+// float16 model — correct URL per @mediapipe/tasks-vision README; float32
+// path does not exist on GCS and returns 404.
 const MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float32/1/face_landmarker.task";
+  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 const WASM_ROOTS = [
   // Local copy (public/mediapipe/wasm) — no CDN dependency, no CORS issues.
   "/mediapipe/wasm",
@@ -282,6 +284,7 @@ export function useFaceDetection(
     emotion: null,
     fps: 0,
     error: null,
+    modelLoading: false,
   });
 
   // Mutable refs for the loop — avoid re-rendering on every frame.
@@ -427,6 +430,7 @@ export function useFaceDetection(
       if (!landmarker) {
         if (loadingLandmarkerRef.current) return;
         loadingLandmarkerRef.current = true;
+        setState((s) => ({ ...s, modelLoading: true }));
         try {
           landmarker = await getLandmarker();
         } catch (err) {
@@ -435,11 +439,12 @@ export function useFaceDetection(
           const message = err instanceof Error ? err.message : "Face detector failed to initialize";
           console.warn("[useFaceDetection] landmarker init failed", err);
           if (detectionFailureCountRef.current >= 3) {
-            setState((s) => ({ ...s, faceDetected: false, faceBox: null, eyePositions: { left: null, right: null }, eyeState: "unknown", eyeOpenness: { left: null, right: null }, headPose: null, fearScore: null, emotion: null, error: message }));
+            setState((s) => ({ ...s, modelLoading: false, faceDetected: false, faceBox: null, eyePositions: { left: null, right: null }, eyeState: "unknown", eyeOpenness: { left: null, right: null }, headPose: null, fearScore: null, emotion: null, error: message }));
           }
           return;
         }
         loadingLandmarkerRef.current = false;
+        setState((s) => ({ ...s, modelLoading: false }));
       }
 
       // Guard: skip frame if a detection is already running.

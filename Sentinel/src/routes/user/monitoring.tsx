@@ -59,6 +59,7 @@ function Monitoring() {
     fearScore: rawFearScore,
     emotion,
     error,
+    modelLoading,
     startCamera,
     stopCamera,
   } = useFaceDetection(videoRef);
@@ -245,9 +246,11 @@ function Monitoring() {
         ? "PERMISSION DENIED"
         : cameraStatus === "error"
           ? "CAMERA ERROR"
-          : faceDetected
-            ? "LOCKED"
-            : "SEARCHING";
+          : modelLoading
+            ? "LOADING AI MODEL"
+            : faceDetected
+              ? "LOCKED"
+              : "SEARCHING";
   return (
     <div className="app-shell flex flex-col">
       <AppHeader battery="98% BLE" title="Live Monitoring" />
@@ -375,6 +378,13 @@ function Monitoring() {
               >
                 RETRY
               </button>
+            </div>
+          )}
+          {/* AI model loading banner */}
+          {cameraStatus === "active" && modelLoading && (
+            <div className="absolute bottom-10 left-3 right-3 rounded-lg bg-card/90 backdrop-blur px-3 py-2 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-gold animate-pulse shrink-0" />
+              <span className="text-[11px] font-semibold leading-tight">Initializing AI model…</span>
             </div>
           )}
           <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
