@@ -19,9 +19,13 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       headers: {
-        // Required for SharedArrayBuffer (used by some MediaPipe WASM builds).
+        // COOP prevents cross-origin popups from accessing the window —
+        // needed for some WASM/SharedArrayBuffer environments.
+        // Intentionally NOT setting COEP (require-corp) here because the
+        // MediaPipe model is fetched from Google Cloud Storage and that
+        // endpoint does not emit Cross-Origin-Resource-Policy, which would
+        // cause the fetch to be blocked under require-corp.
         "Cross-Origin-Opener-Policy": "same-origin",
-        "Cross-Origin-Embedder-Policy": "require-corp",
       },
       proxy: {
         "/hive-api": {

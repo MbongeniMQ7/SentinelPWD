@@ -356,6 +356,18 @@ function Monitoring() {
               </div>
             </div>
           )}
+          {/* Detector error banner — shown when camera is active but MediaPipe fails */}
+          {cameraStatus === "active" && error && (
+            <div className="absolute bottom-10 left-3 right-3 rounded-lg bg-danger-soft/90 backdrop-blur px-3 py-2 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-danger font-semibold leading-tight">{error}</span>
+              <button
+                onClick={() => void startCamera()}
+                className="shrink-0 text-[10px] font-bold tracking-wider text-danger underline"
+              >
+                RETRY
+              </button>
+            </div>
+          )}
           <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
             <div className="rounded-md bg-card/95 backdrop-blur px-3 py-1.5">
               <div className="text-[9px] font-bold tracking-widest text-gold-foreground">{faceStatusLabel}</div>
