@@ -18,6 +18,11 @@ export default defineConfig(({ mode }) => {
       viteReact(),
     ],
     server: {
+      headers: {
+        // Required for SharedArrayBuffer (used by some MediaPipe WASM builds).
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "require-corp",
+      },
       proxy: {
         "/hive-api": {
           target: hiveTarget,
@@ -26,6 +31,9 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    // Tell Vite to treat .wasm files as static assets so it serves them
+    // with the correct application/wasm MIME type.
+    assetsInclude: ["**/*.wasm"],
     resolve: {
       dedupe: [
         "react",

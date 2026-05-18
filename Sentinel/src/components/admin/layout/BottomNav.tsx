@@ -1,8 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import {
-  Home, Users, Bell, Router as RouterIcon, Settings, Camera,
-  FileText, GitBranch, UserPlus, Bug, Activity, LogOut,
-} from "lucide-react";
+import {Home, Users, Bell, Router as RouterIcon, Settings, Camera,FileText, GitBranch, UserPlus, Bug, Activity, LogOut,} from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -71,12 +68,12 @@ export function BottomNav() {
 
   return (
     <>
-      {/* ── Desktop: dark sidebar ── */}
+    
       <aside
         className="hidden lg:flex fixed top-0 left-0 bottom-0 w-60 z-30 flex-col"
         style={{ background: C.bg, borderRight: `1px solid ${C.border}` }}
       >
-        {/* Brand */}
+       
         <div
           className="px-5 pt-6 pb-5 flex items-center gap-3 shrink-0"
           style={{ borderBottom: `1px solid ${C.border}` }}
@@ -103,7 +100,7 @@ export function BottomNav() {
           </div>
         </div>
 
-        {/* Nav */}
+      
         <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
           {sections.map((section) => {
             const group = sidebarItems.filter((i) => i.section === section);
@@ -161,7 +158,7 @@ export function BottomNav() {
           })}
         </nav>
 
-        {/* Footer — user profile + sign out */}
+    
         <div
           className="px-4 py-4 shrink-0"
           style={{ borderTop: `1px solid ${C.border}` }}
@@ -204,7 +201,7 @@ export function BottomNav() {
         </div>
       </aside>
 
-      {/* ── Mobile: bottom tab bar ── */}
+     
       <nav
         className="lg:hidden fixed bottom-0 left-0 right-0 w-full z-50"
         style={{

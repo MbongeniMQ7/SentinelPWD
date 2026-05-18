@@ -196,6 +196,9 @@ let landmarkerPromise: Promise<FaceLandmarker> | null = null;
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float32/1/face_landmarker.task";
 const WASM_ROOTS = [
+  // Local copy (public/mediapipe/wasm) — no CDN dependency, no CORS issues.
+  "/mediapipe/wasm",
+  // CDN fallbacks in case the local copy is missing (e.g. a clean checkout).
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm",
   "https://unpkg.com/@mediapipe/tasks-vision@0.10.35/wasm",
 ];
@@ -286,6 +289,10 @@ export function useFaceDetection(
   const rafRef = useRef<number | null>(null);
   const lastTickRef = useRef<number>(0);
   const lastVideoTimeRef = useRef<number>(-1);
+  /** Prevents multiple concurrent landmarker-load attempts while WASM is initialising. */
+  const loadingLandmarkerRef = useRef<boolean>(false);
+  /** Prevents a second detectForVideo call while one is already in-flight. */
+  const isDetectingRef = useRef<boolean>(false);
   const fpsAccumRef = useRef<{ frames: number; t0: number }>({
     frames: 0,
     t0: 0,
@@ -416,8 +423,30 @@ export function useFaceDetection(
       if (video.currentTime === lastVideoTimeRef.current) return;
       lastVideoTimeRef.current = video.currentTime;
 
+      // Guard: only one landmarker load at a time.
+      if (!landmarker) {
+        if (loadingLandmarkerRef.current) return;
+        loadingLandmarkerRef.current = true;
+        try {
+          landmarker = await getLandmarker();
+        } catch (err) {
+          loadingLandmarkerRef.current = false;
+          detectionFailureCountRef.current += 1;
+          const message = err instanceof Error ? err.message : "Face detector failed to initialize";
+          console.warn("[useFaceDetection] landmarker init failed", err);
+          if (detectionFailureCountRef.current >= 3) {
+            setState((s) => ({ ...s, faceDetected: false, faceBox: null, eyePositions: { left: null, right: null }, eyeState: "unknown", eyeOpenness: { left: null, right: null }, headPose: null, fearScore: null, emotion: null, error: message }));
+          }
+          return;
+        }
+        loadingLandmarkerRef.current = false;
+      }
+
+      // Guard: skip frame if a detection is already running.
+      if (isDetectingRef.current) return;
+      isDetectingRef.current = true;
+
       try {
-        if (!landmarker) landmarker = await getLandmarker();
         detectionFailureCountRef.current = 0;
         const result: FaceLandmarkerResult = landmarker.detectForVideo(
           video,
@@ -448,6 +477,8 @@ export function useFaceDetection(
             error: message,
           }));
         }
+      } finally {
+        isDetectingRef.current = false;
       }
     };
 
